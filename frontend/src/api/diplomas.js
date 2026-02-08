@@ -62,15 +62,19 @@ export async function rejectDiploma(id, note) {
     return res.data;
 }
 
-// Issue (ISSUER)
-export async function issueDiploma(id) {
-    const res = await api.post(`/diplomas/${id}/issue`);
+// Issue (ISSUER) — cần upload walletFile
+export async function issueDiploma(id, walletFile) {
+    const fd = new FormData();
+    fd.append("walletFile", walletFile);
+    const res = await api.post(`/diplomas/${id}/issue`, fd);
     return res.data;
 }
 
-// Revoke (ISSUER)
-export async function revokeDiploma(id) {
-    const res = await api.post(`/diplomas/${id}/revoke`);
+// Revoke (ISSUER) — cần upload walletFile
+export async function revokeDiploma(id, walletFile) {
+    const fd = new FormData();
+    fd.append("walletFile", walletFile);
+    const res = await api.post(`/diplomas/${id}/revoke`, fd);
     return res.data;
 }
 
@@ -83,5 +87,17 @@ export async function getApprovalLogs(id) {
 // Get Chain Logs
 export async function getChainLogs(id) {
     const res = await api.get(`/diplomas/${id}/chain-logs`);
+    return res.data;
+}
+
+// Verify công khai (không cần auth)
+export async function verifyDiploma(params) {
+    const res = await api.get("/public/verify", { params });
+    return res.data;
+}
+
+// Tạo wallet (ISSUER) — trả về Blob
+export async function createWallet() {
+    const res = await api.post("/issuer/wallet", {}, { responseType: "blob" });
     return res.data;
 }

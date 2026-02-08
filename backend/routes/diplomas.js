@@ -3,12 +3,12 @@ import multer from "multer";
 import { pool } from "../src/db.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { requireRole } from "../middlewares/role.js";
-import { chainIssue, chainRevoke, chainRead } from "../services/fabricDiploma.js";
+import { chainIssue, chainRevoke, chainRead, chainIssueWithWallet, chainRevokeWithWallet } from "../services/fabricDiploma.js";
 import { computeRecordHashByDiplomaId } from "../services/recordHash.js";
 
 const router = Router();
 
-// Giới hạn demo: <= 5MB mỗi file
+// Upload ảnh/PDF (tạo hồ sơ)
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 },
@@ -16,6 +16,12 @@ const upload = multer({
         const ok = ["image/jpeg", "image/png", "application/pdf"].includes(file.mimetype);
         cb(ok ? null : new Error("Invalid file type"), ok);
     },
+});
+
+// Upload wallet.json (issue/revoke)
+const walletUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 1 * 1024 * 1024 },
 });
 
 // Helper: chuẩn hóa cực cơ bản (tuần 4 bạn mới làm canonicalization/hashing đầy đủ)
@@ -364,7 +370,19 @@ router.get("/:id/recordhash", requireAuth, requireRole("STAFF", "MANAGER", "ISSU
 });
 
 
-router.post("/:id/issue", requireAuth, requireRole("ISSUER"), async (req, res, next) => {
+router.post("/:id/issue", requireAuth, requireRole("ISSUER"), walletUpload.single("walletFile"), async (req, res, next) => {
+    // Bắt buộc upload wallet
+    if (!req.file) return res.status(400).json({ ok: false, message: "walletFile is required" });
+
+    let wallet;
+    try { wallet = JSON.parse(req.file.buffer.toString("utf8")); }
+    catch { return res.status(400).json({ ok: false, message: "Invalid wallet JSON" }); }
+
+    const { mspId, certificate, privateKey } = wallet;
+    if (!mspId || !certificate || !privateKey) {
+        return res.status(400).json({ ok: false, message: "Wallet must contain mspId, certificate, privateKey" });
+    }
+
     const client = await pool.connect();
     try {
         const id = Number(req.params.id);
@@ -381,7 +399,7 @@ router.post("/:id/issue", requireAuth, requireRole("ISSUER"), async (req, res, n
         const { recordHash } = await computeRecordHashByDiplomaId(id);
 
         const issuedAt = new Date().toISOString();
-        const onchain = await chainIssue(d.serial_no, recordHash, issuedAt);
+        const onchain = await chainIssueWithWallet(d.serial_no, recordHash, issuedAt, mspId, certificate, privateKey);
 
         const r1 = await client.query(
             `UPDATE diplomas
@@ -408,7 +426,19 @@ router.post("/:id/issue", requireAuth, requireRole("ISSUER"), async (req, res, n
 });
 
 
-router.post("/:id/revoke", requireAuth, requireRole("ISSUER"), async (req, res, next) => {
+router.post("/:id/revoke", requireAuth, requireRole("ISSUER"), walletUpload.single("walletFile"), async (req, res, next) => {
+    // Bắt buộc upload wallet
+    if (!req.file) return res.status(400).json({ ok: false, message: "walletFile is required" });
+
+    let wallet;
+    try { wallet = JSON.parse(req.file.buffer.toString("utf8")); }
+    catch { return res.status(400).json({ ok: false, message: "Invalid wallet JSON" }); }
+
+    const { mspId, certificate, privateKey } = wallet;
+    if (!mspId || !certificate || !privateKey) {
+        return res.status(400).json({ ok: false, message: "Wallet must contain mspId, certificate, privateKey" });
+    }
+
     const client = await pool.connect();
     try {
         const id = Number(req.params.id);
@@ -426,7 +456,7 @@ router.post("/:id/revoke", requireAuth, requireRole("ISSUER"), async (req, res, 
         const before = await chainRead(d.serial_no);
 
         const revokedAt = new Date().toISOString();
-        const onchain = await chainRevoke(d.serial_no, revokedAt);
+        const onchain = await chainRevokeWithWallet(d.serial_no, revokedAt, mspId, certificate, privateKey);
 
         const r1 = await client.query(
             `UPDATE diplomas

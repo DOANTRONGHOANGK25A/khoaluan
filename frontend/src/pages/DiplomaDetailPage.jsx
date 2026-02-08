@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Tag, Button, Space, Typography, Row, Col, Spin, message, Divider, Descriptions, Table, Image, Popconfirm } from "antd";
+import { Card, Tag, Button, Space, Typography, Row, Col, Spin, message, Divider, Descriptions, Table, Image, Modal, Upload } from "antd";
 import {
     ArrowLeftOutlined,
     CheckCircleOutlined,
@@ -9,11 +9,10 @@ import {
     CloseCircleOutlined,
     ExclamationCircleOutlined,
     DownloadOutlined,
-    FilePdfOutlined,
-    FileImageOutlined,
     EditOutlined,
     StopOutlined,
-    RocketOutlined
+    RocketOutlined,
+    UploadOutlined,
 } from "@ant-design/icons";
 import {
     getDiplomaById,
@@ -43,6 +42,8 @@ export function DiplomaDetailPage() {
     const [approvalLogs, setApprovalLogs] = useState([]);
     const [chainLogs, setChainLogs] = useState([]);
     const [fileUrls, setFileUrls] = useState({ PORTRAIT: null, DIPLOMA: null, TRANSCRIPT: null });
+    const [walletModal, setWalletModal] = useState({ open: false, action: null });
+    const [walletFile, setWalletFile] = useState(null);
 
     const userStr = localStorage.getItem("user");
     const user = userStr ? JSON.parse(userStr) : null;
@@ -143,23 +144,33 @@ export function DiplomaDetailPage() {
         }
     };
 
-    const handleIssue = async () => {
-        try {
-            await issueDiploma(id);
-            message.success("Đã cấp phát văn bằng on-chain");
-            fetchDiploma();
-        } catch (e) {
-            message.error("Lỗi khi cấp phát");
-        }
+    const handleIssue = () => {
+        setWalletFile(null);
+        setWalletModal({ open: true, action: "issue" });
     };
 
-    const handleRevoke = async () => {
+    const handleRevoke = () => {
+        setWalletFile(null);
+        setWalletModal({ open: true, action: "revoke" });
+    };
+
+    const handleWalletSubmit = async () => {
+        if (!walletFile) return;
+        const { action } = walletModal;
         try {
-            await revokeDiploma(id);
-            message.success("Đã thu hồi văn bằng");
+            if (action === "issue") {
+                await issueDiploma(id, walletFile);
+                message.success("Đã cấp phát văn bằng on-chain");
+            } else {
+                await revokeDiploma(id, walletFile);
+                message.success("Đã thu hồi văn bằng");
+            }
             fetchDiploma();
         } catch (e) {
-            message.error("Lỗi khi thu hồi");
+            message.error(e.response?.data?.message || `Lỗi khi ${action === "issue" ? "cấp phát" : "thu hồi"}`);
+        } finally {
+            setWalletModal({ open: false, action: null });
+            setWalletFile(null);
         }
     };
 
@@ -351,17 +362,9 @@ export function DiplomaDetailPage() {
                         )}
 
                         {role === "ISSUER" && diploma.status === STATUS.APPROVED && (
-                            <Popconfirm
-                                title="Xác nhận phát hành"
-                                description="Văn bằng sẽ được ghi lên blockchain. Tiếp tục?"
-                                onConfirm={handleIssue}
-                                okText="Phát hành"
-                                cancelText="Hủy"
-                            >
-                                <Button type="primary" icon={<RocketOutlined />}>
-                                    Phát hành
-                                </Button>
-                            </Popconfirm>
+                            <Button type="primary" icon={<RocketOutlined />} onClick={handleIssue}>
+                                Phát hành
+                            </Button>
                         )}
 
                         {role === "ISSUER" && diploma.status === STATUS.ISSUED && (
@@ -407,6 +410,28 @@ export function DiplomaDetailPage() {
                     </Card>
                 </Col>
             </Row>
+
+            {/* Modal upload wallet cho issue/revoke */}
+            <Modal
+                title={walletModal.action === "issue" ? "Phát hành — Upload Wallet" : "Thu hồi — Upload Wallet"}
+                open={walletModal.open}
+                onOk={handleWalletSubmit}
+                onCancel={() => { setWalletModal({ open: false, action: null }); setWalletFile(null); }}
+                okText={walletModal.action === "issue" ? "Phát hành" : "Thu hồi"}
+                cancelText="Hủy"
+                okButtonProps={{ disabled: !walletFile, danger: walletModal.action === "revoke" }}
+            >
+                <p>Chọn file <b>wallet.json</b> để ký giao dịch blockchain:</p>
+                <Upload
+                    accept=".json"
+                    maxCount={1}
+                    beforeUpload={(file) => { setWalletFile(file); return false; }}
+                    onRemove={() => setWalletFile(null)}
+                    fileList={walletFile ? [walletFile] : []}
+                >
+                    <Button icon={<UploadOutlined />}>Chọn wallet.json</Button>
+                </Upload>
+            </Modal>
         </div>
     );
 }

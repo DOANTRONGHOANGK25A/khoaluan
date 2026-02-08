@@ -20,9 +20,11 @@ app.use("/api/diplomas", diplomasRouter);
 
 import chainRouter from "../routes/chain.js";
 import publicRouter from "../routes/public.js";
+import issuerRouter from "../routes/issuer.js";
 
 app.use("/api/chain", chainRouter);
 app.use("/api/public", publicRouter);
+app.use("/api/issuer", issuerRouter);
 
 // error handler cơ bản
 app.use((err, req, res, next) => {

@@ -1,147 +1,68 @@
 import React, { useState } from "react";
-import { Card, Input, Typography, Space, Divider, Empty, Spin, Tag, Avatar } from "antd";
-import { SearchOutlined, SafetyCertificateOutlined, CheckCircleOutlined, CloseCircleOutlined, UserOutlined } from "@ant-design/icons";
+import { Card, Input, Typography, Space, Divider, Empty, Spin, Tag, Table, Select } from "antd";
+import { SearchOutlined, SafetyCertificateOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { verifyDiploma } from "../api/diplomas";
 import "../styles/pages.css";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
-// STATUS constants (local copy for now until diplomas API is implemented)
-const STATUS = {
-    PENDING: "PENDING",
-    APPROVED: "APPROVED",
-    ISSUED: "ISSUED",
-    REVOKED: "REVOKED",
-};
+const searchTypes = [
+    { value: "serialNo", label: "Số hiệu văn bằng" },
+    { value: "studentId", label: "Mã sinh viên" },
+    { value: "studentName", label: "Tên sinh viên" },
+];
 
 export function VerifyPage() {
     const [loading, setLoading] = useState(false);
-    const [searchResult, setSearchResult] = useState(null);
+    const [searchType, setSearchType] = useState("serialNo");
+    const [results, setResults] = useState(null);
 
-    const handleSearch = (value) => {
-        if (!value) return;
+    const handleSearch = async (value) => {
+        if (!value.trim()) return;
         setLoading(true);
-        // TODO: Call real API to verify diploma
-        setTimeout(() => {
-            setSearchResult("not_found");
+        try {
+            const res = await verifyDiploma({ [searchType]: value.trim() });
+            setResults(res.ok ? res.data : []);
+        } catch (e) {
+            console.error("Verify error:", e);
+            setResults([]);
+        } finally {
             setLoading(false);
-        }, 800);
-    };
-
-    const getStatusInfo = (status) => {
-        switch (status) {
-            case STATUS.ISSUED:
-                return { color: "success", text: "Hợp lệ - Đã phát hành", icon: <CheckCircleOutlined /> };
-            case STATUS.REVOKED:
-                return { color: "error", text: "Đã thu hồi", icon: <CloseCircleOutlined /> };
-            default:
-                return { color: "warning", text: "Chưa phát hành", icon: null };
         }
     };
 
-    const renderResult = () => {
-        if (loading) {
-            return (
-                <Card className="result-card">
-                    <div className="loading-wrapper">
-                        <Spin size="large" />
-                        <Text type="secondary" style={{ marginTop: 16 }}>
-                            Đang tra cứu thông tin...
-                        </Text>
-                    </div>
-                </Card>
-            );
-        }
-
-        if (!searchResult) {
-            return (
-                <Card className="result-card">
-                    <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description={
-                            <Text type="secondary">
-                                Nhập số hiệu văn bằng để bắt đầu tra cứu
-                            </Text>
-                        }
-                    />
-                </Card>
-            );
-        }
-
-        if (searchResult === "not_found") {
-            return (
-                <Card className="result-card result-not-found">
-                    <div className="verify-result-header">
-                        <CloseCircleOutlined style={{ fontSize: 48, color: "#ff4d4f" }} />
-                        <Title level={4} style={{ margin: "16px 0 8px" }}>Không tìm thấy văn bằng</Title>
-                        <Text type="secondary">
-                            Số hiệu văn bằng không tồn tại trong hệ thống hoặc chưa được phát hành.
-                        </Text>
-                    </div>
-                </Card>
-            );
-        }
-
-        const statusInfo = getStatusInfo(searchResult.status);
-        const isValid = searchResult.status === STATUS.ISSUED;
-
-        return (
-            <Card className={`result-card ${isValid ? "result-valid" : "result-invalid"}`}>
-                <div className="verify-result-header">
-                    <SafetyCertificateOutlined style={{ fontSize: 48, color: isValid ? "#52c41a" : "#ff4d4f" }} />
-                    <Title level={4} style={{ margin: "16px 0 8px" }}>
-                        {isValid ? "Văn bằng hợp lệ" : "Văn bằng không hợp lệ"}
-                    </Title>
-                    <Tag icon={statusInfo.icon} color={statusInfo.color} style={{ fontSize: 14, padding: "4px 12px" }}>
-                        {statusInfo.text}
-                    </Tag>
-                </div>
-
-                <Divider />
-
-                <div className="verify-detail-content">
-                    <div className="detail-header-with-photo">
-                        <Avatar
-                            size={100}
-                            src={searchResult.photo}
-                            icon={<UserOutlined />}
-                            className="detail-photo"
-                        />
-                        <div className="detail-header-info">
-                            <Title level={4} style={{ margin: 0 }}>{searchResult.studentName}</Title>
-                            <Text type="secondary">Mã SV: {searchResult.studentId}</Text>
-                        </div>
-                    </div>
-                    <div className="detail-divider" />
-                    <div className="detail-item">
-                        <Text type="secondary">Số hiệu văn bằng:</Text>
-                        <Text strong>{searchResult.serialNo}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngày sinh:</Text>
-                        <Text>{searchResult.birthDate}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngành:</Text>
-                        <Text>{searchResult.major}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Xếp loại:</Text>
-                        <Text>{searchResult.ranking}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Năm tốt nghiệp:</Text>
-                        <Text>{searchResult.graduationYear}</Text>
-                    </div>
-                    {searchResult.txId && (
-                        <div className="detail-item">
-                            <Text type="secondary">TxID Blockchain:</Text>
-                            <Text code copyable style={{ fontSize: 11 }}>{searchResult.txId}</Text>
-                        </div>
-                    )}
-                </div>
-            </Card>
-        );
-    };
+    const columns = [
+        {
+            title: "Số hiệu",
+            dataIndex: "serialNo",
+            render: (text) => <Text strong>{text}</Text>,
+        },
+        { title: "Mã SV", dataIndex: "studentId" },
+        { title: "Tên SV", dataIndex: "studentName" },
+        {
+            title: "Trạng thái",
+            dataIndex: "status",
+            render: (s) => {
+                const color = s === "ISSUED" ? "success" : s === "REVOKED" ? "error" : "warning";
+                return <Tag color={color}>{s}</Tag>;
+            },
+        },
+        {
+            title: "On-chain",
+            dataIndex: "onchainStatus",
+            render: (s) => (s ? <Tag color="blue">{s}</Tag> : <Tag>Chưa ghi</Tag>),
+        },
+        {
+            title: "Xác thực",
+            dataIndex: "match",
+            render: (match) =>
+                match ? (
+                    <Tag icon={<CheckCircleOutlined />} color="success">MATCH</Tag>
+                ) : (
+                    <Tag icon={<CloseCircleOutlined />} color="error">MISMATCH</Tag>
+                ),
+        },
+    ];
 
     return (
         <div className="page-container">
@@ -152,7 +73,7 @@ export function VerifyPage() {
                 <div className="page-header-content">
                     <Title level={3} className="page-title">Tra cứu văn bằng</Title>
                     <Text type="secondary">
-                        Xác thực văn bằng bằng cách nhập số hiệu hoặc mã QR
+                        Xác thực văn bằng qua blockchain — hỗ trợ tra cứu theo số hiệu, mã SV, hoặc tên
                     </Text>
                 </div>
             </div>
@@ -160,30 +81,64 @@ export function VerifyPage() {
             <Divider />
 
             <Card className="search-card">
-                <Space direction="vertical" size="large" style={{ width: "100%" }}>
-                    <div className="search-wrapper">
-                        <Input.Search
-                            size="large"
-                            placeholder="Nhập số hiệu văn bằng (VD: TN2025-001)"
-                            enterButton={
-                                <Space>
-                                    <SearchOutlined />
-                                    <span>Tra cứu</span>
-                                </Space>
-                            }
-                            onSearch={handleSearch}
-                            loading={loading}
-                            className="search-input"
-                        />
-                    </div>
-                    <Paragraph type="secondary" className="search-hint">
-                        Bạn có thể tìm kiếm bằng số hiệu văn bằng, mã sinh viên, hoặc quét mã QR trên văn bằng
-                    </Paragraph>
-                </Space>
+                <Space.Compact style={{ width: "100%" }}>
+                    <Select
+                        value={searchType}
+                        onChange={setSearchType}
+                        options={searchTypes}
+                        style={{ width: 200 }}
+                    />
+                    <Input.Search
+                        placeholder="Nhập từ khóa tra cứu..."
+                        enterButton={
+                            <Space>
+                                <SearchOutlined />
+                                <span>Tra cứu</span>
+                            </Space>
+                        }
+                        onSearch={handleSearch}
+                        loading={loading}
+                        size="large"
+                    />
+                </Space.Compact>
             </Card>
 
             <div style={{ marginTop: 24 }}>
-                {renderResult()}
+                {loading ? (
+                    <Card>
+                        <div style={{ textAlign: "center", padding: 40 }}>
+                            <Spin size="large" />
+                            <div style={{ marginTop: 16 }}>
+                                <Text type="secondary">Đang tra cứu thông tin...</Text>
+                            </div>
+                        </div>
+                    </Card>
+                ) : results === null ? (
+                    <Card>
+                        <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={<Text type="secondary">Nhập từ khóa để bắt đầu tra cứu</Text>}
+                        />
+                    </Card>
+                ) : results.length === 0 ? (
+                    <Card>
+                        <div style={{ textAlign: "center", padding: 40 }}>
+                            <CloseCircleOutlined style={{ fontSize: 48, color: "#ff4d4f" }} />
+                            <Title level={4} style={{ margin: "16px 0 8px" }}>Không tìm thấy kết quả</Title>
+                            <Text type="secondary">Không có văn bằng nào khớp với từ khóa tra cứu.</Text>
+                        </div>
+                    </Card>
+                ) : (
+                    <Card title={`Kết quả tra cứu (${results.length})`}>
+                        <Table
+                            rowKey="serialNo"
+                            columns={columns}
+                            dataSource={results}
+                            pagination={false}
+                            size="middle"
+                        />
+                    </Card>
+                )}
             </div>
         </div>
     );

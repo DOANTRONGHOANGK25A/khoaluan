@@ -50,3 +50,24 @@ export function getContract() {
     const network = gw.getNetwork(process.env.FABRIC_CHANNEL);
     return network.getContract(process.env.FABRIC_CHAINCODE);
 }
+
+// Tạo gateway tạm bằng wallet upload (cert+key), dùng xong phải gọi close()
+export function connectWithWallet(mspId, certificate, privateKeyPem) {
+    const grpcClient = newGrpcConnection();
+    const privateKey = crypto.createPrivateKey(privateKeyPem);
+    const signer = signers.newPrivateKeySigner(privateKey);
+
+    const gateway = connect({
+        client: grpcClient,
+        identity: { mspId, credentials: Buffer.from(certificate) },
+        signer,
+    });
+
+    const network = gateway.getNetwork(process.env.FABRIC_CHANNEL);
+    const contract = network.getContract(process.env.FABRIC_CHAINCODE);
+
+    return {
+        contract,
+        close() { gateway.close(); grpcClient.close(); },
+    };
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Tabs, Table, Button, Tag, Typography, Divider, Space, Popconfirm, message, Tooltip, Empty, Spin } from "antd";
+import { Card, Tabs, Table, Button, Tag, Typography, Divider, Space, Modal, Upload, message, Tooltip, Empty, Spin } from "antd";
 import {
     SendOutlined,
     CheckCircleOutlined,
@@ -7,9 +7,11 @@ import {
     RocketOutlined,
     StopOutlined,
     EyeOutlined,
+    KeyOutlined,
+    UploadOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { listDiplomas, issueDiploma, revokeDiploma } from "../api/diplomas";
+import { listDiplomas, issueDiploma, revokeDiploma, createWallet } from "../api/diplomas";
 import "../styles/pages.css";
 
 const { Title, Text } = Typography;
@@ -24,13 +26,13 @@ const STATUS = {
 export function IssuancePage() {
     const [diplomas, setDiplomas] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [walletModal, setWalletModal] = useState({ open: false, action: null, record: null });
+    const [walletFile, setWalletFile] = useState(null);
     const navigate = useNavigate();
 
     const fetchDiplomas = async () => {
         setLoading(true);
         try {
-            // Fetch all diplomas to categorize them
-            // Optimization: In real app, might want to fetch by status in Tabs, but for now fetch all is easier with current structure
             const res = await listDiplomas();
             if (res && res.ok) {
                 setDiplomas(res.data);
@@ -51,36 +53,55 @@ export function IssuancePage() {
     const issued = diplomas.filter((d) => d.status === STATUS.ISSUED);
     const revoked = diplomas.filter((d) => d.status === STATUS.REVOKED);
 
-    const handleIssue = async (record) => {
+    // Mở modal chọn wallet trước khi issue/revoke
+    const openWalletModal = (action, record) => {
+        setWalletFile(null);
+        setWalletModal({ open: true, action, record });
+    };
+
+    const closeWalletModal = () => {
+        setWalletModal({ open: false, action: null, record: null });
+        setWalletFile(null);
+    };
+
+    const handleWalletSubmit = async () => {
+        if (!walletFile) return;
+        const { action, record } = walletModal;
         try {
             setLoading(true);
-            const res = await issueDiploma(record.id);
-            if (res && res.ok) {
-                message.success(`Đã phát hành văn bằng ${record.serial_no} lên blockchain`);
-                fetchDiplomas();
+            if (action === "issue") {
+                const res = await issueDiploma(record.id, walletFile);
+                if (res?.ok) message.success(`Đã phát hành văn bằng ${record.serial_no} lên blockchain`);
+            } else {
+                const res = await revokeDiploma(record.id, walletFile);
+                if (res?.ok) message.warning(`Đã thu hồi văn bằng ${record.serial_no}`);
             }
+            fetchDiplomas();
         } catch (error) {
-            console.error("Issue error:", error);
-            message.error("Lỗi khi phát hành văn bằng");
+            console.error(`${action} error:`, error);
+            message.error(error.response?.data?.message || `Lỗi khi ${action === "issue" ? "phát hành" : "thu hồi"}`);
         } finally {
             setLoading(false);
+            closeWalletModal();
         }
     };
 
-    const handleRevoke = async (record) => {
-        // Implement revoke
+    // Tải wallet.json từ server
+    const handleCreateWallet = async () => {
         try {
-            setLoading(true);
-            const res = await revokeDiploma(record.id);
-            if (res && res.ok) {
-                message.warning(`Đã thu hồi văn bằng ${record.serial_no}`);
-                fetchDiplomas();
-            }
-        } catch (error) {
-            console.error("Revoke error:", error);
-            message.error("Lỗi khi thu hồi văn bằng");
-        } finally {
-            setLoading(false);
+            const blob = await createWallet();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "wallet.json";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            message.success("Wallet đã được tải xuống!");
+        } catch (e) {
+            console.error("Create wallet error:", e);
+            message.error("Lỗi tạo wallet");
         }
     };
 
@@ -110,17 +131,9 @@ export function IssuancePage() {
                     <Tooltip title="Xem chi tiết">
                         <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
                     </Tooltip>
-                    <Popconfirm
-                        title="Xác nhận phát hành"
-                        description="Văn bằng sẽ được ghi lên blockchain. Tiếp tục?"
-                        onConfirm={() => handleIssue(record)}
-                        okText="Phát hành"
-                        cancelText="Hủy"
-                    >
-                        <Button type="primary" icon={<RocketOutlined />}>
-                            Phát hành
-                        </Button>
-                    </Popconfirm>
+                    <Button type="primary" icon={<RocketOutlined />} onClick={() => openWalletModal("issue", record)}>
+                        Phát hành
+                    </Button>
                 </Space>
             ),
         },
@@ -162,18 +175,9 @@ export function IssuancePage() {
                     <Tooltip title="Xem chi tiết">
                         <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
                     </Tooltip>
-                    <Popconfirm
-                        title="Xác nhận thu hồi"
-                        description="Văn bằng sẽ bị đánh dấu thu hồi trên blockchain. Tiếp tục?"
-                        onConfirm={() => handleRevoke(record)}
-                        okText="Thu hồi"
-                        cancelText="Hủy"
-                        okButtonProps={{ danger: true }}
-                    >
-                        <Button danger icon={<StopOutlined />}>
-                            Thu hồi
-                        </Button>
-                    </Popconfirm>
+                    <Button danger icon={<StopOutlined />} onClick={() => openWalletModal("revoke", record)}>
+                        Thu hồi
+                    </Button>
                 </Space>
             ),
         },
@@ -253,6 +257,9 @@ export function IssuancePage() {
                         Quản lý việc phát hành văn bằng lên blockchain và thu hồi khi cần thiết
                     </Text>
                 </div>
+                <Button icon={<KeyOutlined />} onClick={handleCreateWallet} style={{ marginLeft: "auto" }}>
+                    Tạo Wallet
+                </Button>
             </div>
 
             <Divider />
@@ -294,6 +301,29 @@ export function IssuancePage() {
                     ]}
                 />
             </Card>
+
+            {/* Modal upload wallet cho issue/revoke */}
+            <Modal
+                title={walletModal.action === "issue" ? "Phát hành — Upload Wallet" : "Thu hồi — Upload Wallet"}
+                open={walletModal.open}
+                onOk={handleWalletSubmit}
+                onCancel={closeWalletModal}
+                okText={walletModal.action === "issue" ? "Phát hành" : "Thu hồi"}
+                cancelText="Hủy"
+                okButtonProps={{ disabled: !walletFile, danger: walletModal.action === "revoke" }}
+                confirmLoading={loading}
+            >
+                <p>Chọn file <b>wallet.json</b> để ký giao dịch blockchain:</p>
+                <Upload
+                    accept=".json"
+                    maxCount={1}
+                    beforeUpload={(file) => { setWalletFile(file); return false; }}
+                    onRemove={() => setWalletFile(null)}
+                    fileList={walletFile ? [walletFile] : []}
+                >
+                    <Button icon={<UploadOutlined />}>Chọn wallet.json</Button>
+                </Upload>
+            </Modal>
         </div>
     );
 }
