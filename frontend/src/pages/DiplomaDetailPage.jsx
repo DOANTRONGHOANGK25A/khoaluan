@@ -130,8 +130,11 @@ export function DiplomaDetailPage() {
     };
 
     const handleReject = async () => {
+        const reason = window.prompt("Nhập lý do từ chối (nếu có):");
+        if (reason === null) return; // Cancelled
+
         try {
-            await rejectDiploma(id, "");
+            await rejectDiploma(id, reason);
             message.success("Đã từ chối hồ sơ");
             fetchDiploma();
         } catch (e) {

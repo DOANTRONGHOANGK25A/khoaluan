@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Card, Table, Button, Space, Tag, Typography, Divider, Empty, Popconfirm, message, Tooltip, Modal, Avatar } from "antd";
+import React, { useState, useEffect } from "react";
+import { Card, Table, Button, Space, Tag, Typography, Divider, Empty, Popconfirm, message, Tooltip, Avatar } from "antd";
 import {
     CheckCircleOutlined,
     CloseCircleOutlined,
@@ -7,100 +7,81 @@ import {
     EyeOutlined,
     UserOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { listDiplomas, approveDiploma, rejectDiploma } from "../api/diplomas"; // Import API
 import "../styles/pages.css";
 
 const { Title, Text } = Typography;
 
-// STATUS constant (local copy until diplomas API is implemented)
-const STATUS = {
-    PENDING: "PENDING",
-    APPROVED: "APPROVED",
-    ISSUED: "ISSUED",
-    REVOKED: "REVOKED",
-};
-
 export function ApprovalPage() {
-    // TODO: Fetch from real API when implemented
-    const [data] = useState([]);
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
-    const handleApprove = (record) => {
-        message.success(`Đã duyệt hồ sơ ${record.serialNo}`);
+    // Fetch pending diplomas on mount
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const res = await listDiplomas({ status: "PENDING" });
+            if (res && res.ok) {
+                setData(res.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch pending diplomas:", error);
+            message.error("Lỗi khi tải danh sách hồ sơ chờ duyệt");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleReject = (record) => {
-        message.error(`Đã từ chối hồ sơ ${record.serialNo}`);
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleApprove = async (record) => {
+        try {
+            setLoading(true);
+            const res = await approveDiploma(record.id);
+            if (res && res.ok) {
+                message.success(`Đã duyệt hồ sơ ${record.serial_no}`);
+                fetchData(); // Refresh list
+            }
+        } catch (error) {
+            console.error("Approve error:", error);
+            message.error("Lỗi khi duyệt hồ sơ");
+            setLoading(false);
+        }
     };
 
-    const openDetail = (record) => {
-        Modal.info({
-            title: (
-                <Space>
-                    <ClockCircleOutlined />
-                    <span>Chi tiết hồ sơ chờ duyệt</span>
-                </Space>
-            ),
-            width: 560,
-            content: (
-                <div className="modal-detail-content">
-                    <div className="detail-header-with-photo">
-                        <Avatar
-                            size={100}
-                            src={record.photo}
-                            icon={<UserOutlined />}
-                            className="detail-photo"
-                        />
-                        <div className="detail-header-info">
-                            <Title level={4} style={{ margin: 0 }}>{record.studentName}</Title>
-                            <Text type="secondary">Mã SV: {record.studentId}</Text>
-                            <div style={{ marginTop: 8 }}>
-                                <Tag icon={<ClockCircleOutlined />} color="warning">Chờ duyệt</Tag>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="detail-divider" />
-                    <div className="detail-item">
-                        <Text type="secondary">Số hiệu văn bằng:</Text>
-                        <Text strong>{record.serialNo}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngày sinh:</Text>
-                        <Text>{record.birthDate}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngành:</Text>
-                        <Text>{record.major}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Xếp loại:</Text>
-                        <Text>{record.ranking}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">GPA:</Text>
-                        <Text>{record.gpa}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Năm tốt nghiệp:</Text>
-                        <Text>{record.graduationYear}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngày tạo hồ sơ:</Text>
-                        <Text>{record.date}</Text>
-                    </div>
-                </div>
-            ),
-            okText: "Đóng",
-        });
+    const handleReject = async (record) => {
+        const reason = window.prompt("Nhập lý do từ chối (nếu có):");
+        if (reason === null) { // User clicked Cancel
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const res = await rejectDiploma(record.id, reason);
+            if (res && res.ok) {
+                message.success(`Đã từ chối hồ sơ ${record.serial_no}`);
+                fetchData(); // Refresh list
+            }
+        } catch (error) {
+            console.error("Reject error:", error);
+            message.error("Lỗi khi từ chối hồ sơ");
+            setLoading(false);
+        }
     };
 
     const columns = [
         {
             title: "Số hiệu",
-            dataIndex: "serialNo",
+            dataIndex: "serial_no", // API returns snake_case
             render: (text) => <Text strong>{text}</Text>,
         },
         {
             title: "Sinh viên",
-            dataIndex: "studentName",
+            dataIndex: "student_name",
         },
         {
             title: "Ngành",
@@ -109,7 +90,8 @@ export function ApprovalPage() {
         },
         {
             title: "Ngày tạo",
-            dataIndex: "date",
+            dataIndex: "created_at",
+            render: (d) => d ? new Date(d).toLocaleDateString('vi-VN') : "",
         },
         {
             title: "Trạng thái",
@@ -127,7 +109,7 @@ export function ApprovalPage() {
             render: (_, record) => (
                 <Space>
                     <Tooltip title="Xem chi tiết">
-                        <Button type="text" icon={<EyeOutlined />} onClick={() => openDetail(record)} />
+                        <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
                     </Tooltip>
                     <Popconfirm
                         title="Xác nhận duyệt"
@@ -140,18 +122,9 @@ export function ApprovalPage() {
                             Duyệt
                         </Button>
                     </Popconfirm>
-                    <Popconfirm
-                        title="Xác nhận từ chối"
-                        description="Bạn có chắc muốn từ chối hồ sơ này?"
-                        onConfirm={() => handleReject(record)}
-                        okText="Từ chối"
-                        cancelText="Hủy"
-                        okButtonProps={{ danger: true }}
-                    >
-                        <Tooltip title="Từ chối">
-                            <Button danger icon={<CloseCircleOutlined />} />
-                        </Tooltip>
-                    </Popconfirm>
+                    <Tooltip title="Từ chối">
+                        <Button danger icon={<CloseCircleOutlined />} onClick={() => handleReject(record)} />
+                    </Tooltip>
                 </Space>
             ),
         },
@@ -188,6 +161,7 @@ export function ApprovalPage() {
                         rowKey="id"
                         columns={columns}
                         dataSource={data}
+                        loading={loading}
                         pagination={{
                             pageSize: 8,
                             showTotal: (total) => `Tổng ${total} hồ sơ`,
