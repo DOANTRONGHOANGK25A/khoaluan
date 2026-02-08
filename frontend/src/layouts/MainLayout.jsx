@@ -80,6 +80,35 @@ export default function MainLayout() {
         token: { colorBgContainer, borderRadiusLG },
     } = theme.useToken();
 
+    // Lấy user từ localStorage
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    const role = user?.role || "GUEST";
+
+    const getFilteredMenuItems = () => {
+        if (!user) {
+            // Chưa login -> chỉ hiện Tra cứu
+            return menuItems.filter(item => item.key === "/verify");
+        }
+
+        switch (role) {
+            case "ADMIN":
+                // Admin thấy hết hoặc tùy chỉnh
+                return menuItems;
+            case "STAFF":
+                // STAFF: Tra cứu, Danh sách, Tạo hồ sơ
+                return menuItems.filter(item => ["/verify", "/diplomas", "/create"].includes(item.key));
+            case "MANAGER":
+                // MANAGER: Tra cứu, Danh sách, Duyệt
+                return menuItems.filter(item => ["/verify", "/diplomas", "/approval"].includes(item.key));
+            case "ISSUER":
+                // ISSUER: Tra cứu, Danh sách, Phát hành
+                return menuItems.filter(item => ["/verify", "/diplomas", "/issuance"].includes(item.key));
+            default:
+                return menuItems.filter(item => item.key === "/verify");
+        }
+    };
+
     const handleMenuClick = (e) => {
         navigate(e.key);
     };
@@ -110,7 +139,7 @@ export default function MainLayout() {
                     theme="dark"
                     mode="inline"
                     selectedKeys={[location.pathname]}
-                    items={menuItems}
+                    items={getFilteredMenuItems()}
                     onClick={handleMenuClick}
                     className="main-menu"
                 />
@@ -141,27 +170,37 @@ export default function MainLayout() {
                     </div>
 
                     <div className="header-right">
-                        <div className="status-badge">
-                            <span className="status-dot"></span>
-                            <span className="status-text">Demo Mode</span>
-                        </div>
-
-                        <Dropdown
-                            menu={{
-                                items: userMenuItems,
-                                onClick: handleUserMenuClick,
-                            }}
-                            placement="bottomRight"
-                            trigger={["click"]}
-                        >
-                            <Space className="user-dropdown">
-                                <Avatar
-                                    style={{ backgroundColor: "#1890ff" }}
-                                    icon={<UserOutlined />}
-                                />
-                                <span className="user-name">Admin</span>
-                            </Space>
-                        </Dropdown>
+                        {user ? (
+                            <>
+                                <div className="status-badge" style={{ marginRight: 16 }}>
+                                    <span className="status-dot"></span>
+                                    <span className="status-text">{role}</span>
+                                </div>
+                                <Dropdown
+                                    menu={{
+                                        items: userMenuItems,
+                                        onClick: handleUserMenuClick,
+                                    }}
+                                    placement="bottomRight"
+                                    trigger={['click']}
+                                >
+                                    <Space className="user-dropdown">
+                                        <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
+                                        <span className="user-name">{user.username || user.fullName || 'User'}</span>
+                                    </Space>
+                                </Dropdown>
+                            </>
+                        ) : (
+                            <>
+                                <div className="status-badge" style={{ marginRight: 16 }}>
+                                    <span className="status-dot" style={{ backgroundColor: '#ccc' }}></span>
+                                    <span className="status-text">Khách</span>
+                                </div>
+                                <Button type="primary" onClick={() => navigate('/login')}>
+                                    Đăng nhập
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </Header>
 

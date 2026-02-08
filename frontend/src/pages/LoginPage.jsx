@@ -149,6 +149,15 @@ export function LoginPage() {
                                 Đăng nhập
                             </Button>
                         </Form.Item>
+
+                        <Form.Item style={{ marginBottom: 0 }}>
+                            <Button block onClick={() => {
+                                localStorage.clear();
+                                navigate("/verify");
+                            }}>
+                                Truy cập với tư cách Khách
+                            </Button>
+                        </Form.Item>
                     </Form>
                 </Card>
 

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { pool } from "../db.js";
+import { pool } from "../src/db.js";
 import { chainRead } from "../services/fabricDiploma.js";
 import { computeRecordHashByDiplomaId } from "../services/recordHash.js";
 

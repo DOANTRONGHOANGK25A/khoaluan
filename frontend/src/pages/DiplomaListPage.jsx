@@ -59,80 +59,6 @@ export function DiplomaListPage() {
         revoked: diplomas.filter((d) => d.status === STATUS.REVOKED).length,
     };
 
-    const handleViewPhoto = async (record) => {
-        try {
-            const blob = await downloadDiplomaFile(record.id, "PORTRAIT");
-            const url = URL.createObjectURL(blob);
-            Modal.info({
-                title: "Ảnh chân dung",
-                content: <img src={url} alt="Portrait" style={{ maxWidth: "100%" }} />,
-                okText: "Đóng",
-                onOk: () => URL.revokeObjectURL(url),
-            });
-        } catch {
-            message.error("Không thể tải ảnh");
-        }
-    };
-
-    const openDetail = (record) => {
-        Modal.info({
-            title: (
-                <Space>
-                    <FileTextOutlined />
-                    <span>Chi tiết hồ sơ văn bằng</span>
-                </Space>
-            ),
-            width: 560,
-            content: (
-                <div className="modal-detail-content">
-                    <div className="detail-header-with-photo">
-                        <Avatar
-                            size={100}
-                            icon={<UserOutlined />}
-                            className="detail-photo"
-                        />
-                        <div className="detail-header-info">
-                            <Title level={4} style={{ margin: 0 }}>{record.student_name}</Title>
-                            <Text type="secondary">Mã SV: {record.student_id}</Text>
-                            <div style={{ marginTop: 8 }}>
-                                <Tag color={getStatusColor(record.status)}>{record.status}</Tag>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="detail-divider" />
-                    <div className="detail-item">
-                        <Text type="secondary">Số hiệu văn bằng:</Text>
-                        <Text strong>{record.serial_no}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngày sinh:</Text>
-                        <Text>{record.birth_date || "-"}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngành:</Text>
-                        <Text>{record.major || "-"}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Xếp loại:</Text>
-                        <Text>{record.ranking || "-"}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">GPA:</Text>
-                        <Text>{record.gpa || "-"}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Năm tốt nghiệp:</Text>
-                        <Text>{record.graduation_year || "-"}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Số file đính kèm:</Text>
-                        <Text>{record.file_count || 0}</Text>
-                    </div>
-                </div>
-            ),
-            okText: "Đóng",
-        });
-    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -210,7 +136,7 @@ export function DiplomaListPage() {
                     <Button
                         type="text"
                         icon={<EyeOutlined />}
-                        onClick={() => openDetail(record)}
+                        href={`/diplomas/${record.id}`}
                     />
                 </Tooltip>
             ),

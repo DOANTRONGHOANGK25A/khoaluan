@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import { VerifyPage } from "../pages/VerifyPage";
 import { DiplomaListPage } from "../pages/DiplomaListPage";
+import { DiplomaDetailPage } from "../pages/DiplomaDetailPage";
 import { DiplomaCreatePage } from "../pages/DiplomaCreatePage";
 import { ApprovalPage } from "../pages/ApprovalPage";
 import { IssuancePage } from "../pages/IssuancePage";
@@ -28,6 +29,10 @@ const router = createBrowserRouter([
             {
                 path: "diplomas",
                 element: <DiplomaListPage />,
+            },
+            {
+                path: "diplomas/:id",
+                element: <DiplomaDetailPage />,
             },
             {
                 path: "create",

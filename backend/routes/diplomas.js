@@ -341,8 +341,19 @@ router.get("/:id/approval-logs", requireAuth, requireRole("STAFF", "MANAGER", "I
     } catch (e) { next(e); }
 });
 
+router.get("/:id/chain-logs", requireAuth, requireRole("STAFF", "MANAGER", "ISSUER"), async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
+        const r = await pool.query(
+            "SELECT action, tx_id, record_hash, onchain_status, created_at FROM chain_logs WHERE diploma_id=$1 ORDER BY created_at ASC",
+            [id]
+        );
+        res.json({ ok: true, data: r.rows });
+    } catch (e) { next(e); }
+});
 
-import { computeRecordHashByDiplomaId } from "../services/recordHash.js";
+
+
 
 router.get("/:id/recordhash", requireAuth, requireRole("STAFF", "MANAGER", "ISSUER"), async (req, res, next) => {
     try {

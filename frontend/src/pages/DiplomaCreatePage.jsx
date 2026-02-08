@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { Card, Form, Input, InputNumber, Select, Button, Space, Upload, Typography, Divider, Row, Col, message, Avatar } from "antd";
-import { InboxOutlined, PlusCircleOutlined, SaveOutlined, CloseOutlined, UserOutlined, CameraOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
-import { createDiploma } from "../api/diplomas";
+import React, { useState, useEffect } from "react";
+import { Card, Form, Input, InputNumber, Select, Button, Space, Upload, Typography, Divider, Row, Col, message, Avatar, Spin, Image } from "antd";
+import { InboxOutlined, PlusCircleOutlined, SaveOutlined, CloseOutlined, UserOutlined, CameraOutlined, EditOutlined } from "@ant-design/icons";
+import { useNavigate, useLocation } from "react-router-dom";
+import { createDiploma, getDiplomaById, updateDiploma, downloadDiplomaFile } from "../api/diplomas";
 import "../styles/pages.css";
 
 const { Dragger } = Upload;
@@ -10,14 +10,79 @@ const { Title, Text } = Typography;
 
 export function DiplomaCreatePage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [form] = Form.useForm();
     const [photoPreview, setPhotoPreview] = useState(null);
+    const [diplomaPreview, setDiplomaPreview] = useState(null);
+    const [transcriptPreview, setTranscriptPreview] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(false);
+
+    // Edit mode state
+    const diplomaId = location.state?.diplomaId;
+    const isEditMode = !!diplomaId;
 
     // File states
     const [portraitFile, setPortraitFile] = useState(null);
     const [diplomaFile, setDiplomaFile] = useState(null);
     const [transcriptFile, setTranscriptFile] = useState(null);
+
+    useEffect(() => {
+        if (isEditMode) {
+            fetchDiplomaData();
+        }
+    }, [diplomaId]);
+
+    const fetchDiplomaData = async () => {
+        setFetching(true);
+        try {
+            const res = await getDiplomaById(diplomaId);
+            if (res && res.ok) {
+                const data = res.data;
+                form.setFieldsValue({
+                    serialNo: data.serial_no,
+                    studentId: data.student_id,
+                    studentName: data.student_name,
+                    birthDate: data.birth_date,
+                    major: data.major,
+                    ranking: data.ranking,
+                    gpa: data.gpa,
+                    graduationYear: data.graduation_year
+                });
+
+                // Load previews for all files
+                try {
+                    const portraitBlob = await downloadDiplomaFile(diplomaId, "PORTRAIT");
+                    setPhotoPreview(URL.createObjectURL(portraitBlob));
+                } catch (e) {
+                    console.error("Could not load portrait preview", e);
+                }
+
+                try {
+                    const diplomaBlob = await downloadDiplomaFile(diplomaId, "DIPLOMA");
+                    setDiplomaPreview(URL.createObjectURL(diplomaBlob));
+                } catch (e) {
+                    console.error("Could not load diploma preview", e);
+                }
+
+                try {
+                    const transcriptBlob = await downloadDiplomaFile(diplomaId, "TRANSCRIPT");
+                    setTranscriptPreview(URL.createObjectURL(transcriptBlob));
+                } catch (e) {
+                    console.error("Could not load transcript preview", e);
+                }
+
+            } else {
+                message.error("Không tìm thấy dữ liệu văn bằng");
+                navigate("/diplomas");
+            }
+        } catch (error) {
+            message.error("Lỗi khi tải dữ liệu");
+            console.error(error);
+        } finally {
+            setFetching(false);
+        }
+    };
 
     const handlePhotoChange = (info) => {
         if (info.file) {
@@ -49,18 +114,20 @@ export function DiplomaCreatePage() {
     };
 
     const handleSubmit = async (values) => {
-        // Validate files
-        if (!portraitFile) {
-            message.error("Vui lòng tải lên ảnh chân dung!");
-            return;
-        }
-        if (!diplomaFile) {
-            message.error("Vui lòng tải lên file PDF văn bằng!");
-            return;
-        }
-        if (!transcriptFile) {
-            message.error("Vui lòng tải lên bảng điểm!");
-            return;
+        // Validate files only if creating
+        if (!isEditMode) {
+            if (!portraitFile) {
+                message.error("Vui lòng tải lên ảnh chân dung!");
+                return;
+            }
+            if (!diplomaFile) {
+                message.error("Vui lòng tải lên file PDF văn bằng!");
+                return;
+            }
+            if (!transcriptFile) {
+                message.error("Vui lòng tải lên bảng điểm!");
+                return;
+            }
         }
 
         setLoading(true);
@@ -76,25 +143,36 @@ export function DiplomaCreatePage() {
                 graduationYear: values.graduationYear || "",
             };
 
-            const files = {
-                portrait: portraitFile,
-                diploma: diplomaFile,
-                transcript: transcriptFile,
-            };
-
-            const result = await createDiploma(formData, files);
+            let result;
+            if (isEditMode) {
+                // Update mode (files not updated in this flow yet)
+                result = await updateDiploma(diplomaId, formData);
+                if (result.ok) {
+                    message.success("Cập nhật hồ sơ thành công!");
+                }
+            } else {
+                // Create mode
+                const files = {
+                    portrait: portraitFile,
+                    diploma: diplomaFile,
+                    transcript: transcriptFile,
+                };
+                result = await createDiploma(formData, files);
+                if (result.ok) {
+                    message.success("Hồ sơ đã được tạo thành công!");
+                }
+            }
 
             if (result.ok) {
-                message.success("Hồ sơ đã được tạo thành công!");
                 form.resetFields();
                 setPhotoPreview(null);
                 setPortraitFile(null);
                 setDiplomaFile(null);
                 setTranscriptFile(null);
-                navigate("/diplomas");
+                navigate(isEditMode ? `/diplomas/${diplomaId}` : "/diplomas");
             }
         } catch (err) {
-            const msg = err.response?.data?.message || "Tạo hồ sơ thất bại!";
+            const msg = err.response?.data?.message || (isEditMode ? "Cập nhật thất bại!" : "Tạo hồ sơ thất bại!");
             message.error(msg);
         } finally {
             setLoading(false);
@@ -102,19 +180,31 @@ export function DiplomaCreatePage() {
     };
 
     const handleCancel = () => {
-        navigate("/diplomas");
+        if (isEditMode) {
+            navigate(`/diplomas/${diplomaId}`);
+        } else {
+            navigate("/diplomas");
+        }
     };
+
+    if (fetching) {
+        return (
+            <div style={{ textAlign: "center", padding: "50px" }}>
+                <Spin size="large" />
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
             <div className="page-header">
                 <div className="page-header-icon create-icon">
-                    <PlusCircleOutlined />
+                    {isEditMode ? <EditOutlined /> : <PlusCircleOutlined />}
                 </div>
                 <div className="page-header-content">
-                    <Title level={3} className="page-title">Tạo hồ sơ văn bằng</Title>
+                    <Title level={3} className="page-title">{isEditMode ? "Cập nhật hồ sơ văn bằng" : "Tạo hồ sơ văn bằng"}</Title>
                     <Text type="secondary">
-                        Nhập thông tin để tạo hồ sơ văn bằng mới trong hệ thống
+                        {isEditMode ? "Chỉnh sửa thông tin hồ sơ văn bằng" : "Nhập thông tin để tạo hồ sơ văn bằng mới trong hệ thống"}
                     </Text>
                 </div>
             </div>
@@ -279,12 +369,22 @@ export function DiplomaCreatePage() {
                     </Row>
 
                     <Form.Item
-                        label="Bảng điểm (ảnh/PDF) - bắt buộc"
+                        label={isEditMode ? "Bảng điểm (ảnh) - Chỉ tải nếu muốn thay đổi" : "Bảng điểm (ảnh) - bắt buộc"}
                         name="transcript"
                         extra={transcriptFile ? `Đã chọn: ${transcriptFile.name}` : null}
                     >
+                        {isEditMode && transcriptPreview && (
+                            <div style={{ marginBottom: 16, textAlign: 'center', border: '1px dashed #d9d9d9', padding: 8, borderRadius: 8 }}>
+                                <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Ảnh hiện tại:</Text>
+                                <Image
+                                    width={200}
+                                    src={transcriptPreview}
+                                    placeholder={<Spin />}
+                                />
+                            </div>
+                        )}
                         <Dragger
-                            accept=".pdf,image/*"
+                            accept=".jpg,.jpeg,.png"
                             maxCount={1}
                             beforeUpload={() => false}
                             onChange={handleTranscriptChange}
@@ -297,19 +397,29 @@ export function DiplomaCreatePage() {
                                 Kéo thả hoặc bấm để chọn file
                             </p>
                             <p className="ant-upload-hint">
-                                Chấp nhận PDF/JPG/PNG. Tối đa 5MB.
+                                Chấp nhận JPG, PNG. Tối đa 5MB.
                             </p>
                         </Dragger>
                     </Form.Item>
 
                     <Form.Item
-                        label="Tải lên file PDF văn bằng - bắt buộc"
+                        label={isEditMode ? "File văn bằng (ảnh) - Chỉ tải nếu muốn thay đổi" : "File văn bằng (ảnh) - bắt buộc"}
                         extra={diplomaFile ? `Đã chọn: ${diplomaFile.name}` : null}
                     >
+                        {isEditMode && diplomaPreview && (
+                            <div style={{ marginBottom: 16, textAlign: 'center', border: '1px dashed #d9d9d9', padding: 8, borderRadius: 8 }}>
+                                <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Ảnh hiện tại:</Text>
+                                <Image
+                                    width={200}
+                                    src={diplomaPreview}
+                                    placeholder={<Spin />}
+                                />
+                            </div>
+                        )}
                         <Dragger
                             beforeUpload={() => false}
                             maxCount={1}
-                            accept=".pdf"
+                            accept=".jpg,.jpeg,.png"
                             onChange={handleDiplomaChange}
                             className="upload-dragger"
                         >
@@ -317,10 +427,10 @@ export function DiplomaCreatePage() {
                                 <InboxOutlined style={{ color: "#1890ff" }} />
                             </p>
                             <p className="ant-upload-text">
-                                Kéo thả file PDF vào đây hoặc click để chọn file
+                                Kéo thả file vào đây hoặc bấm để chọn file
                             </p>
                             <p className="ant-upload-hint">
-                                Hỗ trợ định dạng PDF. Kích thước tối đa 5MB
+                                Hỗ trợ định dạng JPG, PNG. Kích thước tối đa 5MB
                             </p>
                         </Dragger>
                     </Form.Item>
@@ -343,7 +453,7 @@ export function DiplomaCreatePage() {
                             size="large"
                             loading={loading}
                         >
-                            Lưu hồ sơ
+                            {isEditMode ? "Cập nhật hồ sơ" : "Lưu hồ sơ"}
                         </Button>
                     </div>
                 </Form>
