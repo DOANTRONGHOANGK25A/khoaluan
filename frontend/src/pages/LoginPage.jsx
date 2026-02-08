@@ -1,0 +1,171 @@
+import React, { useState } from "react";
+import { Form, Input, Button, Card, Checkbox, Typography, Space, message, Table, Tag } from "antd";
+import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import api from "../api/api";
+import "../styles/login.css";
+
+const { Title, Text } = Typography;
+
+// Demo accounts data (mật khẩu thật từ schema.sql)
+const demoAccounts = [
+    { id: 1, username: "admin", password: "Admin@123", role: "ADMIN", description: "Quản trị hệ thống" },
+    { id: 2, username: "staff01", password: "Staff@123", role: "STAFF", description: "Nhân viên tạo hồ sơ" },
+    { id: 3, username: "manager", password: "Manager@123", role: "MANAGER", description: "Quản lý duyệt văn bằng" },
+    { id: 4, username: "issuer", password: "Issuer@123", role: "ISSUER", description: "Người cấp phát" },
+];
+
+export function LoginPage() {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+
+    const onFinish = async (values) => {
+        setLoading(true);
+        try {
+            const res = await api.post("/auth/login", {
+                username: values.username,
+                password: values.password,
+            });
+
+            if (res.data.ok) {
+                const { token, user } = res.data.data;
+                localStorage.setItem("token", token);
+                localStorage.setItem("user", JSON.stringify(user));
+                message.success("Đăng nhập thành công!");
+                navigate("/verify");
+            }
+        } catch (err) {
+            const msg = err.response?.data?.message || "Đăng nhập thất bại";
+            message.error(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getRoleTag = (role) => {
+        switch (role) {
+            case "ADMIN":
+                return <Tag color="red">Quản trị viên</Tag>;
+            case "STAFF":
+                return <Tag color="blue">Nhân viên</Tag>;
+            case "MANAGER":
+                return <Tag color="gold">Quản lý</Tag>;
+            case "ISSUER":
+                return <Tag color="green">Người cấp phát</Tag>;
+            default:
+                return <Tag>{role}</Tag>;
+        }
+    };
+
+    const accountColumns = [
+        {
+            title: "Tài khoản",
+            dataIndex: "username",
+            key: "username",
+            render: (text) => <Text code copyable>{text}</Text>,
+        },
+        {
+            title: "Mật khẩu",
+            dataIndex: "password",
+            key: "password",
+            render: (text) => <Text code copyable>{text}</Text>,
+        },
+        {
+            title: "Vai trò",
+            dataIndex: "role",
+            key: "role",
+            render: (role) => getRoleTag(role),
+        },
+        {
+            title: "Mô tả",
+            dataIndex: "description",
+            key: "description",
+            ellipsis: true,
+        },
+    ];
+
+    return (
+        <div className="login-container">
+            <div className="login-background">
+                <div className="login-overlay"></div>
+            </div>
+
+            <div className="login-content">
+                <Card className="login-card">
+                    <div className="login-header">
+                        <div className="login-logo">🎓</div>
+                        <Title level={2} className="login-title">
+                            Diploma System
+                        </Title>
+                        <Text type="secondary">
+                            Hệ thống quản lý văn bằng số
+                        </Text>
+                    </div>
+
+                    <Form
+                        name="login"
+                        layout="vertical"
+                        onFinish={onFinish}
+                        autoComplete="off"
+                        size="large"
+                    >
+                        <Form.Item
+                            name="username"
+                            rules={[
+                                { required: true, message: "Vui lòng nhập tên đăng nhập!" },
+                            ]}
+                        >
+                            <Input
+                                prefix={<UserOutlined className="input-icon" />}
+                                placeholder="Tên đăng nhập"
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="password"
+                            rules={[
+                                { required: true, message: "Vui lòng nhập mật khẩu!" },
+                            ]}
+                        >
+                            <Input.Password
+                                prefix={<LockOutlined className="input-icon" />}
+                                placeholder="Mật khẩu"
+                            />
+                        </Form.Item>
+
+                        <Form.Item>
+                            <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                                <Form.Item name="remember" valuePropName="checked" noStyle>
+                                    <Checkbox>Ghi nhớ đăng nhập</Checkbox>
+                                </Form.Item>
+                                <a className="login-forgot" href="#">
+                                    Quên mật khẩu?
+                                </a>
+                            </Space>
+                        </Form.Item>
+
+                        <Form.Item style={{ marginBottom: 12 }}>
+                            <Button type="primary" htmlType="submit" block loading={loading}>
+                                Đăng nhập
+                            </Button>
+                        </Form.Item>
+                    </Form>
+                </Card>
+
+                <Card className="demo-accounts-card" title="Tài khoản demo">
+                    <Table
+                        dataSource={demoAccounts}
+                        columns={accountColumns}
+                        rowKey="id"
+                        pagination={false}
+                        size="small"
+                    />
+                </Card>
+
+                <div className="login-info">
+                    <Text type="secondary">© 2025 Diploma System. All rights reserved.</Text>
+                </div>
+            </div>
+        </div>
+    );
+}

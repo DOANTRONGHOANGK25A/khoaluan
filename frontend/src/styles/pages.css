@@ -1,0 +1,330 @@
+/* Pages Common Styles */
+.page-container {
+    width: 100%;
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.page-header-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.page-header-icon.verify-icon {
+    background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+}
+
+.page-header-icon.list-icon {
+    background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+}
+
+.page-header-icon.create-icon {
+    background: linear-gradient(135deg, #722ed1 0%, #9254de 100%);
+}
+
+.page-header-icon.approval-icon {
+    background: linear-gradient(135deg, #fa8c16 0%, #ffa940 100%);
+}
+
+.page-header-icon.issuance-icon {
+    background: linear-gradient(135deg, #eb2f96 0%, #f759ab 100%);
+}
+
+.page-header-icon.admin-icon {
+    background: linear-gradient(135deg, #13c2c2 0%, #36cfc9 100%);
+}
+
+.page-header-content {
+    flex: 1;
+}
+
+.page-title {
+    margin: 0 0 4px 0 !important;
+    color: #262626 !important;
+}
+
+/* Search Card */
+.search-card {
+    border-radius: 12px;
+}
+
+.search-wrapper {
+    max-width: 600px;
+}
+
+.search-input {
+    border-radius: 8px;
+}
+
+.search-input .ant-input {
+    border-radius: 8px 0 0 8px !important;
+}
+
+.search-input .ant-btn {
+    border-radius: 0 8px 8px 0 !important;
+    height: 40px;
+}
+
+.search-hint {
+    margin: 0;
+    font-size: 13px;
+}
+
+/* Result Card */
+.result-card {
+    border-radius: 12px;
+}
+
+.loading-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 0;
+}
+
+/* Stats Row */
+.stats-row {
+    margin-bottom: 16px !important;
+}
+
+.stat-card {
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-card .ant-statistic-title {
+    font-size: 13px;
+    color: #8c8c8c;
+}
+
+.stat-card .ant-statistic-content-value {
+    font-size: 28px;
+}
+
+/* Table Card */
+.table-card {
+    border-radius: 12px;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.search-input-table {
+    width: 320px;
+    max-width: 100%;
+}
+
+.data-table .ant-table-thead>tr>th {
+    background: #fafafa;
+    font-weight: 600;
+}
+
+.data-table .ant-table-tbody>tr:hover>td {
+    background: #f0f7ff;
+}
+
+/* Modal Detail */
+.modal-detail-content {
+    margin-top: 16px;
+}
+
+.modal-detail-content .detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-detail-content .detail-item:last-child {
+    border-bottom: none;
+}
+
+/* Form Card */
+.form-card {
+    border-radius: 12px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.upload-dragger {
+    border-radius: 12px !important;
+}
+
+.upload-dragger:hover {
+    border-color: #1890ff !important;
+}
+
+/* Info Card */
+.info-card {
+    border-radius: 12px;
+    background: #fffbe6;
+    border-color: #ffe58f;
+}
+
+/* Tabs Card */
+.tabs-card {
+    border-radius: 12px;
+}
+
+.tabs-card .ant-tabs-nav {
+    margin-bottom: 16px;
+}
+
+/* Modal Actions */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+/* Photo Upload Section */
+.photo-upload-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 0;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f0 100%);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.photo-preview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.student-photo-preview {
+    border: 4px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.student-photo-placeholder {
+    background: linear-gradient(135deg, #d9d9d9 0%, #bfbfbf 100%);
+    border: 4px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.photo-upload-btn {
+    margin-bottom: 0 !important;
+}
+
+.photo-upload-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 8px;
+    text-align: center;
+}
+
+/* Detail Modal with Photo */
+.detail-header-with-photo {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 0;
+}
+
+.detail-photo {
+    flex-shrink: 0;
+    border: 3px solid #f0f0f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.detail-header-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e8e8e8, transparent);
+    margin: 16px 0;
+}
+
+/* Verify Page Results */
+.verify-result-header {
+    text-align: center;
+    padding: 24px 0;
+}
+
+.verify-detail-content {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.result-valid {
+    border: 2px solid #b7eb8f;
+    background: linear-gradient(135deg, #f6ffed 0%, #fff 100%);
+}
+
+.result-invalid {
+    border: 2px solid #ffa39e;
+    background: linear-gradient(135deg, #fff2f0 0%, #fff 100%);
+}
+
+.result-not-found {
+    border: 2px solid #ffccc7;
+    background: linear-gradient(135deg, #fff2f0 0%, #fff 100%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .table-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-input-table {
+        width: 100%;
+    }
+
+    .stats-row .ant-col {
+        margin-bottom: 8px;
+    }
+
+    .detail-header-with-photo {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .detail-header-info {
+        align-items: center;
+    }
+}
