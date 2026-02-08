@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Tag, Button, Space, Typography, Row, Col, Spin, message, Divider, Descriptions, Table, Image } from "antd";
+import { Card, Tag, Button, Space, Typography, Row, Col, Spin, message, Divider, Descriptions, Table, Image, Popconfirm } from "antd";
 import {
     ArrowLeftOutlined,
     CheckCircleOutlined,
@@ -12,7 +12,8 @@ import {
     FilePdfOutlined,
     FileImageOutlined,
     EditOutlined,
-    StopOutlined
+    StopOutlined,
+    RocketOutlined
 } from "@ant-design/icons";
 import {
     getDiplomaById,
@@ -350,9 +351,17 @@ export function DiplomaDetailPage() {
                         )}
 
                         {role === "ISSUER" && diploma.status === STATUS.APPROVED && (
-                            <Button type="primary" onClick={handleIssue} icon={<CheckCircleOutlined />}>
-                                Cấp phát (Issue)
-                            </Button>
+                            <Popconfirm
+                                title="Xác nhận phát hành"
+                                description="Văn bằng sẽ được ghi lên blockchain. Tiếp tục?"
+                                onConfirm={handleIssue}
+                                okText="Phát hành"
+                                cancelText="Hủy"
+                            >
+                                <Button type="primary" icon={<RocketOutlined />}>
+                                    Phát hành
+                                </Button>
+                            </Popconfirm>
                         )}
 
                         {role === "ISSUER" && diploma.status === STATUS.ISSUED && (

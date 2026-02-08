@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Card, Tabs, Table, Button, Tag, Typography, Divider, Space, Popconfirm, message, Tooltip, Empty, Modal, Avatar } from "antd";
+import React, { useState, useEffect } from "react";
+import { Card, Tabs, Table, Button, Tag, Typography, Divider, Space, Popconfirm, message, Tooltip, Empty, Spin } from "antd";
 import {
     SendOutlined,
     CheckCircleOutlined,
@@ -7,13 +7,13 @@ import {
     RocketOutlined,
     StopOutlined,
     EyeOutlined,
-    UserOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { listDiplomas, issueDiploma, revokeDiploma } from "../api/diplomas";
 import "../styles/pages.css";
 
 const { Title, Text } = Typography;
 
-// STATUS constant (local copy until diplomas API is implemented)
 const STATUS = {
     PENDING: "PENDING",
     APPROVED: "APPROVED",
@@ -22,105 +22,75 @@ const STATUS = {
 };
 
 export function IssuancePage() {
-    // TODO: Fetch from real API when implemented
-    const [diplomas] = useState([]);
+    const [diplomas, setDiplomas] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+
+    const fetchDiplomas = async () => {
+        setLoading(true);
+        try {
+            // Fetch all diplomas to categorize them
+            // Optimization: In real app, might want to fetch by status in Tabs, but for now fetch all is easier with current structure
+            const res = await listDiplomas();
+            if (res && res.ok) {
+                setDiplomas(res.data);
+            }
+        } catch (error) {
+            console.error("Fetch diplomas error:", error);
+            message.error("Lỗi khi tải danh sách văn bằng");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDiplomas();
+    }, []);
 
     const ready = diplomas.filter((d) => d.status === STATUS.APPROVED);
     const issued = diplomas.filter((d) => d.status === STATUS.ISSUED);
     const revoked = diplomas.filter((d) => d.status === STATUS.REVOKED);
 
-    const handleIssue = (record) => {
-        message.success(`Đã phát hành văn bằng ${record.serialNo} lên blockchain`);
-    };
-
-    const handleRevoke = (record) => {
-        message.warning(`Đã thu hồi văn bằng ${record.serialNo}`);
-    };
-
-    const getStatusInfo = (status) => {
-        switch (status) {
-            case STATUS.APPROVED:
-                return { color: "processing", text: "Đã duyệt", icon: <CheckCircleOutlined /> };
-            case STATUS.ISSUED:
-                return { color: "success", text: "Đã phát hành", icon: <RocketOutlined /> };
-            case STATUS.REVOKED:
-                return { color: "error", text: "Đã thu hồi", icon: <CloseCircleOutlined /> };
-            default:
-                return { color: "default", text: status, icon: null };
+    const handleIssue = async (record) => {
+        try {
+            setLoading(true);
+            const res = await issueDiploma(record.id);
+            if (res && res.ok) {
+                message.success(`Đã phát hành văn bằng ${record.serial_no} lên blockchain`);
+                fetchDiplomas();
+            }
+        } catch (error) {
+            console.error("Issue error:", error);
+            message.error("Lỗi khi phát hành văn bằng");
+        } finally {
+            setLoading(false);
         }
     };
 
-    const openDetail = (record) => {
-        const statusInfo = getStatusInfo(record.status);
-        Modal.info({
-            title: (
-                <Space>
-                    <SendOutlined />
-                    <span>Chi tiết văn bằng</span>
-                </Space>
-            ),
-            width: 560,
-            content: (
-                <div className="modal-detail-content">
-                    <div className="detail-header-with-photo">
-                        <Avatar
-                            size={100}
-                            src={record.photo}
-                            icon={<UserOutlined />}
-                            className="detail-photo"
-                        />
-                        <div className="detail-header-info">
-                            <Title level={4} style={{ margin: 0 }}>{record.studentName}</Title>
-                            <Text type="secondary">Mã SV: {record.studentId}</Text>
-                            <div style={{ marginTop: 8 }}>
-                                <Tag icon={statusInfo.icon} color={statusInfo.color}>{statusInfo.text}</Tag>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="detail-divider" />
-                    <div className="detail-item">
-                        <Text type="secondary">Số hiệu văn bằng:</Text>
-                        <Text strong>{record.serialNo}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngày sinh:</Text>
-                        <Text>{record.birthDate}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Ngành:</Text>
-                        <Text>{record.major}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Xếp loại:</Text>
-                        <Text>{record.ranking}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">GPA:</Text>
-                        <Text>{record.gpa}</Text>
-                    </div>
-                    <div className="detail-item">
-                        <Text type="secondary">Năm tốt nghiệp:</Text>
-                        <Text>{record.graduationYear}</Text>
-                    </div>
-                    {record.txId && (
-                        <div className="detail-item">
-                            <Text type="secondary">TxID:</Text>
-                            <Text code copyable style={{ fontSize: 11 }}>{record.txId}</Text>
-                        </div>
-                    )}
-                </div>
-            ),
-            okText: "Đóng",
-        });
+    const handleRevoke = async (record) => {
+        // Implement revoke
+        try {
+            setLoading(true);
+            const res = await revokeDiploma(record.id);
+            if (res && res.ok) {
+                message.warning(`Đã thu hồi văn bằng ${record.serial_no}`);
+                fetchDiplomas();
+            }
+        } catch (error) {
+            console.error("Revoke error:", error);
+            message.error("Lỗi khi thu hồi văn bằng");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const columnsReady = [
         {
             title: "Số hiệu",
-            dataIndex: "serialNo",
+            dataIndex: "serial_no",
             render: (text) => <Text strong>{text}</Text>,
         },
-        { title: "Sinh viên", dataIndex: "studentName" },
+        { title: "Sinh viên", dataIndex: "student_name" },
         { title: "Ngành", dataIndex: "major", ellipsis: true },
         {
             title: "Trạng thái",
@@ -138,7 +108,7 @@ export function IssuancePage() {
             render: (_, record) => (
                 <Space>
                     <Tooltip title="Xem chi tiết">
-                        <Button type="text" icon={<EyeOutlined />} onClick={() => openDetail(record)} />
+                        <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
                     </Tooltip>
                     <Popconfirm
                         title="Xác nhận phát hành"
@@ -159,14 +129,14 @@ export function IssuancePage() {
     const columnsIssued = [
         {
             title: "Số hiệu",
-            dataIndex: "serialNo",
+            dataIndex: "serial_no",
             render: (text) => <Text strong>{text}</Text>,
         },
-        { title: "Sinh viên", dataIndex: "studentName" },
+        { title: "Sinh viên", dataIndex: "student_name" },
         { title: "Ngành", dataIndex: "major", ellipsis: true },
         {
             title: "TxID",
-            dataIndex: "txId",
+            dataIndex: "tx_id",
             ellipsis: true,
             render: (text) => (
                 <Text code copyable={{ text }}>
@@ -190,7 +160,7 @@ export function IssuancePage() {
             render: (_, record) => (
                 <Space>
                     <Tooltip title="Xem chi tiết">
-                        <Button type="text" icon={<EyeOutlined />} onClick={() => openDetail(record)} />
+                        <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
                     </Tooltip>
                     <Popconfirm
                         title="Xác nhận thu hồi"
@@ -212,14 +182,14 @@ export function IssuancePage() {
     const columnsRevoked = [
         {
             title: "Số hiệu",
-            dataIndex: "serialNo",
+            dataIndex: "serial_no",
             render: (text) => <Text strong>{text}</Text>,
         },
-        { title: "Sinh viên", dataIndex: "studentName" },
+        { title: "Sinh viên", dataIndex: "student_name" },
         { title: "Ngành", dataIndex: "major", ellipsis: true },
         {
             title: "TxID",
-            dataIndex: "txId",
+            dataIndex: "tx_id",
             ellipsis: true,
             render: (text) => (
                 <Text code copyable={{ text }}>
@@ -242,7 +212,7 @@ export function IssuancePage() {
             align: "center",
             render: (_, record) => (
                 <Tooltip title="Xem chi tiết">
-                    <Button type="text" icon={<EyeOutlined />} onClick={() => openDetail(record)} />
+                    <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
                 </Tooltip>
             ),
         },
