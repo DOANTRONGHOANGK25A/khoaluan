@@ -13,6 +13,7 @@ import {
     SettingOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import api from "../api/api";
 import "../styles/layout.css";
 
 const { Header, Content, Sider } = Layout;
@@ -110,12 +111,29 @@ export default function MainLayout() {
     };
 
     const handleMenuClick = (e) => {
+        // Find if user clicked a user menu item, do not navigate for "logout" key
+        // Wait, handleMenuClick is for Sider menu. handleUserMenuClick is for Dropdown.
+        // There is no overlap in keys, but be careful.
+        // Actually handleMenuClick is only attached to Sider Menu.
         navigate(e.key);
     };
 
-    const handleUserMenuClick = ({ key }) => {
+    const handleUserMenuClick = async ({ key }) => {
         if (key === "logout") {
-            navigate("/login");
+            try {
+                await api.post("/auth/logout");
+            } catch (err) {
+                console.error("Logout API failed", err);
+            } finally {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                navigate("/login");
+            }
+        } else {
+            // For other keys like profile, settings, we might want to navigate
+            // But currently no routes for them.
+            // If we had routes: navigate(`/${key}`);
+            console.log("User menu click:", key);
         }
     };
 

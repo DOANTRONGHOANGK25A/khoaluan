@@ -27,7 +27,7 @@ CREATE TABLE diplomas (
   graduation_year INT,
 
   status          TEXT NOT NULL DEFAULT 'PENDING'
-                 CHECK (status IN ('PENDING','APPROVED','ISSUED','REVOKED')),
+                 CHECK (status IN ('PENDING','APPROVED','REJECTED','ISSUED','REVOKED')),
 
   created_by      BIGINT REFERENCES users(id),
   approved_by     BIGINT REFERENCES users(id),
@@ -68,6 +68,7 @@ CREATE TABLE diploma_files (
   filename    TEXT,
   mime_type   TEXT,
   size_bytes  INT,
+  sha256      TEXT,
   data        BYTEA NOT NULL,
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 

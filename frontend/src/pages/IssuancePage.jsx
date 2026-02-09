@@ -149,12 +149,14 @@ export function IssuancePage() {
         { title: "Ngành", dataIndex: "major", ellipsis: true },
         {
             title: "TxID",
-            dataIndex: "tx_id",
+            dataIndex: "last_tx_id",
             ellipsis: true,
             render: (text) => (
-                <Text code copyable={{ text }}>
-                    {text?.substring(0, 16)}...
-                </Text>
+                text ? (
+                    <Text code copyable={{ text }}>
+                        {text.substring(0, 16)}...
+                    </Text>
+                ) : "—"
             ),
         },
         {

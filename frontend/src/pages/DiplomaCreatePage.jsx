@@ -150,45 +150,41 @@ export function DiplomaCreatePage() {
 
         setLoading(true);
         try {
-            const formData = {
-                serialNo: values.serialNo,
-                studentId: values.studentId,
-                studentName: values.studentName,
-                birthDate: values.birthDate || "",
-                major: values.major || "",
-                ranking: values.ranking || "",
-                gpa: values.gpa ? String(values.gpa) : "",
-                graduationYear: values.graduationYear || "",
-            };
-
             let result;
             if (isEditMode) {
-                // Update mode (only update fields first, file update logic is complex if backend doesn't support multipart on PUT)
-                // However, user expects file update. Assuming backend handles it or we need a specific endpoint.
-                // The current api/diplomas.js updateDiploma only sends data.
-                // We should check if we need to implement file update separately or if the backend supports it.
-                // BUT: User feedback implies they want to update files. 
-                // Let's assume for now we use the create logic or a new update logic.
-                // Re-reading context: "The backend PUT /api/diplomas/:id endpoint is confirmed to support metadata updates."
-                // Wait, if it only supports metadata, file updates won't work.
-                // I need to check api/diplomas.js updateDiploma function again.
-                // It uses `api.put`. Standard PUT usually takes JSON.
-                // If I want to update files, I might need a different approach or the backend must support multipart PUT.
-                // However, looking at the code I wrote for `updateDiploma`, it takes `data`.
-                // If I want to update files, I probably need to use `FormData` and `api.put` with multipart/form-data.
+                // Update mode using FormData
+                const fd = new FormData();
+                fd.append("serialNo", values.serialNo);
+                fd.append("studentId", values.studentId);
+                fd.append("studentName", values.studentName);
+                fd.append("birthDate", values.birthDate || "");
+                fd.append("major", values.major || "");
+                fd.append("ranking", values.ranking || "");
+                fd.append("gpa", values.gpa ? String(values.gpa) : "");
+                fd.append("graduationYear", values.graduationYear || "");
 
-                // Let's first fix the UI as requested. The file update logic is a separate underlying issue if it doesn't work.
+                // Append files only if selected (new files)
+                if (portraitFile) fd.append("portrait", portraitFile);
+                if (diplomaFile) fd.append("diploma", diplomaFile);
+                if (transcriptFile) fd.append("transcript", transcriptFile);
 
-                // For now, I'll use the existing update logic which might just be metadata.
-                // If the user wants file updates, I'll need to refactor `updateDiploma` to use FormData if files are present.
-                // But let's stick to the UI fix first.
-
-                result = await updateDiploma(diplomaId, formData);
+                result = await updateDiploma(diplomaId, fd);
                 if (result.ok) {
                     message.success("Cập nhật hồ sơ thành công!");
                 }
             } else {
                 // Create mode
+                const formData = {
+                    serialNo: values.serialNo,
+                    studentId: values.studentId,
+                    studentName: values.studentName,
+                    birthDate: values.birthDate || "",
+                    major: values.major || "",
+                    ranking: values.ranking || "",
+                    gpa: values.gpa ? String(values.gpa) : "",
+                    graduationYear: values.graduationYear || "",
+                };
+
                 const files = {
                     portrait: portraitFile,
                     diploma: diplomaFile,
@@ -292,9 +288,14 @@ export function DiplomaCreatePage() {
                             <Text type="secondary">
                                 Ảnh chân dung 3x4 của sinh viên (bắt buộc)
                             </Text>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
+                            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
                                 Định dạng: JPG, PNG. Tối đa 5MB
                             </Text>
+                            {isEditMode && (
+                                <Text type="warning" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                                    * Nếu không chọn file mới thì giữ file cũ
+                                </Text>
+                            )}
                         </div>
                     </div>
 
@@ -343,6 +344,10 @@ export function DiplomaCreatePage() {
                             <Form.Item
                                 label="Ngày sinh"
                                 name="birthDate"
+                                rules={[
+                                    { required: true, message: "Vui lòng nhập ngày sinh" },
+                                    { pattern: /^\d{4}-\d{2}-\d{2}$/, message: "Định dạng: YYYY-MM-DD" },
+                                ]}
                             >
                                 <Input placeholder="YYYY-MM-DD" />
                             </Form.Item>
@@ -382,6 +387,7 @@ export function DiplomaCreatePage() {
                                 label="Năm tốt nghiệp"
                                 name="graduationYear"
                                 initialValue="2025"
+                                rules={[{ required: true, message: "Vui lòng chọn năm tốt nghiệp" }]}
                             >
                                 <Select
                                     options={[
@@ -399,6 +405,19 @@ export function DiplomaCreatePage() {
                             <Form.Item
                                 label="GPA"
                                 name="gpa"
+                                rules={[
+                                    { required: true, message: "Vui lòng nhập GPA" },
+                                    {
+                                        validator: (_, value) => {
+                                            if (value !== undefined && value !== null) {
+                                                if (value < 0 || value > 4) {
+                                                    return Promise.reject(new Error("GPA phải từ 0 đến 4"));
+                                                }
+                                            }
+                                            return Promise.resolve();
+                                        },
+                                    },
+                                ]}
                             >
                                 <InputNumber
                                     placeholder="Ví dụ: 3.25"

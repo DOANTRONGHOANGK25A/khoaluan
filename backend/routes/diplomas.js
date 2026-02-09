@@ -61,6 +61,13 @@ router.post(
                 return res.status(400).json({ ok: false, message: "serialNo/studentId/studentName required" });
             }
 
+            // Validate fields required for future issuance
+            if (!birthDate) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: birthDate" });
+            if (!major) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: major" });
+            if (!ranking) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: ranking" });
+            if (!gpa) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: gpa" });
+            if (!graduationYear) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: graduationYear" });
+
             const files = req.files || {};
             const portrait = files.portrait?.[0];
             const diploma = files.diploma?.[0];
@@ -137,48 +144,114 @@ router.post(
 // ---------------------------
 // PUT /api/diplomas/:id (STAFF) - chỉ sửa khi PENDING
 // ---------------------------
-router.put("/:id", requireAuth, requireRole("STAFF"), async (req, res, next) => {
-    try {
-        const id = Number(req.params.id);
-        const {
-            studentId,
-            studentName,
-            birthDate,
-            major,
-            ranking,
-            gpa,
-            graduationYear,
-        } = req.body || {};
+router.put(
+    "/:id",
+    requireAuth,
+    requireRole("STAFF"),
+    upload.fields([
+        { name: "portrait", maxCount: 1 },
+        { name: "diploma", maxCount: 1 },
+        { name: "transcript", maxCount: 1 },
+    ]),
+    async (req, res, next) => {
+        const client = await pool.connect();
+        try {
+            const id = Number(req.params.id);
+            const {
+                studentId,
+                studentName,
+                birthDate,
+                major,
+                ranking,
+                gpa,
+                graduationYear,
+            } = req.body || {};
 
-        const r0 = await pool.query("SELECT id, status FROM diplomas WHERE id=$1", [id]);
-        const d0 = r0.rows[0];
-        if (!d0) return res.status(404).json({ ok: false, message: "Not found" });
-        if (d0.status !== "PENDING") {
-            return res.status(400).json({ ok: false, message: "Only PENDING can be updated" });
+            await client.query("BEGIN");
+
+            const r0 = await client.query("SELECT id, serial_no, status FROM diplomas WHERE id=$1 FOR UPDATE", [id]);
+            const d0 = r0.rows[0];
+            if (!d0) {
+                await client.query("ROLLBACK");
+                return res.status(404).json({ ok: false, message: "Not found" });
+            }
+
+            // 1) Allow PENDING or REJECTED
+            if (!["PENDING", "REJECTED"].includes(d0.status)) {
+                await client.query("ROLLBACK");
+                return res.status(400).json({ ok: false, message: "Only PENDING or REJECTED can be updated" });
+            }
+
+            // 2) Validate required fields
+            // Note: studentId/Name are critical. Others are required for issuance later.
+            // But we already added validation in previous step.
+            // Let's keep it consistent.
+            if (!studentId || !studentName || !birthDate || !major || !ranking || !gpa || !graduationYear) {
+                await client.query("ROLLBACK");
+                return res.status(400).json({ ok: false, message: "Missing required fields: studentId, studentName, birthDate, major, ranking, gpa, graduationYear" });
+            }
+
+            // 3) Update text fields
+            const r = await client.query(
+                `UPDATE diplomas
+           SET student_id=$1, student_name=$2, birth_date=$3, major=$4, ranking=$5, gpa=$6, graduation_year=$7,
+               status='PENDING', updated_at=now()
+           WHERE id=$8
+           RETURNING id, serial_no, student_id, student_name, status, updated_at`,
+                [
+                    studentId ? trim1(studentId) : null,
+                    studentName ? trim1(studentName) : null,
+                    birthDate ? trim1(birthDate) : null,
+                    major ? trim1(major) : null,
+                    ranking ? trim1(ranking) : null,
+                    gpa ? trim1(gpa) : null,
+                    graduationYear ? Number(graduationYear) : null,
+                    id,
+                ]
+            );
+
+            // 4) Handle file updates
+            const files = req.files || {};
+            const portrait = files.portrait?.[0];
+            const diplomaPdf = files.diploma?.[0]; // Frontend sends 'diploma'
+            const transcriptPdf = files.transcript?.[0]; // Frontend sends 'transcript'
+
+            // Upsert helper with SHA256
+            // Based on user request: "tính sha256 của file ... lưu vào bảng diploma_files"
+            const upsertFile = async (kind, f) => {
+                if (!f) return;
+                const importCrypto = await import("crypto"); // Dynamic import or use global require if available. ESM module.
+                // Since this file uses `import`, we can import at top level. But function scope is safer if I can't touch top.
+                // Wait, I can't touch top level imports easily without replacing whole file.
+                // Assuming `crypto` is available or I can import it.
+                // Let's use `crypto` from 'node:crypto'.
+                const hash = importCrypto.createHash("sha256").update(f.buffer).digest("hex");
+
+                await client.query(
+                    `INSERT INTO diploma_files(diploma_id, kind, filename, mime_type, size_bytes, data, sha256)
+               VALUES($1,$2,$3,$4,$5,$6,$7)
+               ON CONFLICT (diploma_id, kind)
+               DO UPDATE SET filename=EXCLUDED.filename, mime_type=EXCLUDED.mime_type,
+                             size_bytes=EXCLUDED.size_bytes, data=EXCLUDED.data, sha256=EXCLUDED.sha256, updated_at=now()`,
+                    [id, kind, f.originalname, f.mimetype, f.size, f.buffer, hash]
+                );
+            };
+
+            // Mapping: 'PORTRAIT', 'DIPLOMA', 'TRANSCRIPT'
+            await upsertFile("PORTRAIT", portrait);
+            await upsertFile("DIPLOMA", diplomaPdf);
+            await upsertFile("TRANSCRIPT", transcriptPdf);
+
+            await client.query("COMMIT");
+            res.json({ ok: true, data: r.rows[0] });
+        } catch (e) {
+            await client.query("ROLLBACK");
+            next(e);
+        } finally {
+            client.release();
         }
-
-        const r = await pool.query(
-            `UPDATE diplomas
-       SET student_id=$1, student_name=$2, birth_date=$3, major=$4, ranking=$5, gpa=$6, graduation_year=$7
-       WHERE id=$8
-       RETURNING id, serial_no, student_id, student_name, status, updated_at`,
-            [
-                studentId ? trim1(studentId) : null,
-                studentName ? trim1(studentName) : null,
-                birthDate ? trim1(birthDate) : null,
-                major ? trim1(major) : null,
-                ranking ? trim1(ranking) : null,
-                gpa ? trim1(gpa) : null,
-                graduationYear ? Number(graduationYear) : null,
-                id,
-            ]
-        );
-
-        res.json({ ok: true, data: r.rows[0] });
-    } catch (e) {
-        next(e);
     }
-});
+);
 
 // ---------------------------
 // GET /api/diplomas (STAFF/MANAGER/ISSUER) - list + search cơ bản
@@ -208,7 +281,8 @@ router.get("/", requireAuth, requireRole("ADMIN", "STAFF", "MANAGER", "ISSUER"),
 
         const sql = `
       SELECT d.*,
-        (SELECT COUNT(*) FROM diploma_files f WHERE f.diploma_id=d.id) AS file_count
+        (SELECT COUNT(*) FROM diploma_files f WHERE f.diploma_id=d.id) AS file_count,
+        (SELECT c.tx_id FROM chain_logs c WHERE c.diploma_id=d.id ORDER BY c.created_at DESC LIMIT 1) AS last_tx_id
       FROM diplomas d
       ${where.length ? "WHERE " + where.join(" AND ") : ""}
       ORDER BY d.created_at DESC
@@ -230,7 +304,8 @@ router.get("/:id", requireAuth, requireRole("ADMIN", "STAFF", "MANAGER", "ISSUER
         const id = Number(req.params.id);
         const r = await pool.query(
             `SELECT d.*,
-        (SELECT COUNT(*) FROM diploma_files f WHERE f.diploma_id=d.id) AS file_count
+        (SELECT COUNT(*) FROM diploma_files f WHERE f.diploma_id=d.id) AS file_count,
+        (SELECT c.tx_id FROM chain_logs c WHERE c.diploma_id=d.id ORDER BY c.created_at DESC LIMIT 1) AS last_tx_id
        FROM diplomas d WHERE d.id=$1`,
             [id]
         );
@@ -320,18 +395,36 @@ router.post("/:id/reject", requireAuth, requireRole("MANAGER"), async (req, res,
         const id = Number(req.params.id);
         const note = (req.body?.note || "").toString().trim();
 
-        const r0 = await pool.query("SELECT status FROM diplomas WHERE id=$1", [id]);
-        const d0 = r0.rows[0];
-        if (!d0) return res.status(404).json({ ok: false, message: "Not found" });
-        if (d0.status !== "PENDING") return res.status(400).json({ ok: false, message: "Only PENDING can be rejected" });
+        const client = await pool.connect();
+        try {
+            await client.query("BEGIN");
+            const r0 = await client.query("SELECT status FROM diplomas WHERE id=$1 FOR UPDATE", [id]);
+            const d0 = r0.rows[0];
+            if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
+            if (d0.status !== "PENDING") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only PENDING can be rejected" }); }
 
-        await pool.query(
-            `INSERT INTO approval_logs(diploma_id, actor_id, action, note)
-       VALUES($1,$2,'REJECT',$3)`,
-            [id, req.user.id, note || null]
-        );
+            const r1 = await client.query(
+                `UPDATE diplomas
+           SET status='REJECTED', updated_at=now()
+           WHERE id=$1
+           RETURNING id, serial_no, status, updated_at`,
+                [id]
+            );
 
-        res.json({ ok: true });
+            await client.query(
+                `INSERT INTO approval_logs(diploma_id, actor_id, action, note)
+           VALUES($1,$2,'REJECT',$3)`,
+                [id, req.user.id, note || null]
+            );
+
+            await client.query("COMMIT");
+            res.json({ ok: true, data: r1.rows[0] });
+        } catch (e) {
+            await client.query("ROLLBACK");
+            throw e;
+        } finally {
+            client.release();
+        }
     } catch (e) { next(e); }
 });
 
@@ -397,6 +490,21 @@ router.post("/:id/issue", requireAuth, requireRole("ISSUER"), walletUpload.singl
         const d = r0.rows[0];
         if (!d) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
         if (d.status !== "APPROVED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only APPROVED can be issued" }); }
+
+        // Validate required fields for chaincode
+        const missing = [];
+        if (!d.student_id) missing.push("studentId");
+        if (!d.student_name) missing.push("studentName");
+        if (!d.birth_date) missing.push("birthDate");
+        if (!d.major) missing.push("major");
+        if (!d.ranking) missing.push("ranking");
+        if (!d.gpa) missing.push("gpa");
+        if (!d.graduation_year) missing.push("graduationYear");
+
+        if (missing.length > 0) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ ok: false, message: `Cannot issue. Missing fields: ${missing.join(", ")}` });
+        }
 
         // Tính recordHash
         const { recordHash } = await computeRecordHashByDiplomaId(id);
