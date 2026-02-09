@@ -11,6 +11,7 @@ import {
     MenuUnfoldOutlined,
     LogoutOutlined,
     SettingOutlined,
+    InboxOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import api from "../api/api";
@@ -33,6 +34,11 @@ const menuItems = [
         key: "/create",
         icon: <PlusCircleOutlined />,
         label: "Tạo hồ sơ",
+    },
+    {
+        key: "/my-diplomas",
+        icon: <InboxOutlined />,
+        label: "Hồ sơ của tôi",
     },
     {
         key: "/approval",
@@ -97,8 +103,8 @@ export default function MainLayout() {
                 // Admin thấy hết hoặc tùy chỉnh
                 return menuItems;
             case "STAFF":
-                // STAFF: Tra cứu, Danh sách, Tạo hồ sơ
-                return menuItems.filter(item => ["/verify", "/diplomas", "/create"].includes(item.key));
+                // STAFF: Tra cứu, Danh sách, Tạo hồ sơ, Hồ sơ của tôi
+                return menuItems.filter(item => ["/verify", "/diplomas", "/create", "/my-diplomas"].includes(item.key));
             case "MANAGER":
                 // MANAGER: Tra cứu, Danh sách, Duyệt
                 return menuItems.filter(item => ["/verify", "/diplomas", "/approval"].includes(item.key));

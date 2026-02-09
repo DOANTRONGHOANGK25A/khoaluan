@@ -154,9 +154,9 @@ export function IssuancePage() {
                     <Button type="primary" icon={<RocketOutlined />} onClick={() => openWalletModal("issue", record)}>
                         Phát hành
                     </Button>
-                    <Button danger icon={<CloseCircleOutlined />} onClick={() => { setRejectReason(""); setRejectModal({ open: true, record }); }}>
-                        Từ chối
-                    </Button>
+                    <Tooltip title="Từ chối">
+                        <Button danger icon={<CloseCircleOutlined />} onClick={() => { setRejectReason(""); setRejectModal({ open: true, record }); }} />
+                    </Tooltip>
                 </Space>
             ),
         },

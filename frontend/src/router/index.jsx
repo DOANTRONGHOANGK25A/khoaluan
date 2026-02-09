@@ -8,6 +8,7 @@ import { ApprovalPage } from "../pages/ApprovalPage";
 import { IssuancePage } from "../pages/IssuancePage";
 import { AdminUsersPage } from "../pages/AdminUsersPage";
 import { LoginPage } from "../pages/LoginPage";
+import { StaffDashboardPage } from "../pages/StaffDashboardPage";
 const router = createBrowserRouter([
     {
         path: "/login",
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
             {
                 path: "create",
                 element: <DiplomaCreatePage />,
+            },
+            {
+                path: "my-diplomas",
+                element: <StaffDashboardPage />,
             },
             {
                 path: "approval",

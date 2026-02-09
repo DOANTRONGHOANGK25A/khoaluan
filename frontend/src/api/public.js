@@ -11,3 +11,11 @@ export async function verifyOnChain(serialNo) {
     const res = await api.get("/public/verify", { params: { serialNo } });
     return res.data;
 }
+
+// Tải file công khai (ảnh/tài liệu) theo ID diploma
+export async function downloadPublicDiplomaFile(diplomaId, kind) {
+    const res = await api.get(`/public/diplomas/${diplomaId}/files/${kind}`, {
+        responseType: "blob",
+    });
+    return res.data; // Blob
+}

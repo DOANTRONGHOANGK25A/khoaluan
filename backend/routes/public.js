@@ -123,4 +123,31 @@ router.get("/verify", async (req, res, next) => {
     } catch (e) { next(e); }
 });
 
+// ─── GET /api/public/diplomas/:id/files/:kind ─── Tải file công khai (không cần auth)
+router.get("/diplomas/:id/files/:kind", async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
+        const kind = req.params.kind?.toUpperCase();
+
+        const allowed = ["PORTRAIT", "DIPLOMA", "TRANSCRIPT"];
+        if (!allowed.includes(kind)) {
+            return res.status(400).json({ ok: false, message: "Invalid kind" });
+        }
+
+        const r = await pool.query(
+            `SELECT filename, mime_type, data FROM diploma_files
+             WHERE diploma_id=$1 AND kind=$2`,
+            [id, kind]
+        );
+        const f = r.rows[0];
+        if (!f) return res.status(404).json({ ok: false, message: "File not found" });
+
+        res.setHeader("Content-Type", f.mime_type || "application/octet-stream");
+        res.setHeader("Content-Disposition", `inline; filename="${f.filename || kind}"`);
+        res.send(f.data);
+    } catch (e) {
+        next(e);
+    }
+});
+
 export default router;
