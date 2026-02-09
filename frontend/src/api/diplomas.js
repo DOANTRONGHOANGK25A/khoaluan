@@ -96,6 +96,18 @@ export async function verifyDiploma(params) {
     return res.data;
 }
 
+// Từ chối phát hành (ISSUER/PRINCIPAL)
+export async function rejectIssueDiploma(id, reason) {
+    const res = await api.post(`/diplomas/${id}/reject-issue`, { reason });
+    return res.data;
+}
+
+// Gửi lại duyệt (STAFF)
+export async function resubmitDiploma(id) {
+    const res = await api.post(`/diplomas/${id}/resubmit`);
+    return res.data;
+}
+
 // Tạo wallet (ISSUER) — trả về Blob
 export async function createWallet() {
     const res = await api.post("/issuer/wallet", {}, { responseType: "blob" });

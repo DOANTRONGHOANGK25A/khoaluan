@@ -38,6 +38,10 @@ CREATE TABLE diplomas (
   issued_at       TIMESTAMPTZ,
   revoked_at      TIMESTAMPTZ,
 
+  rejected_reason TEXT,
+  rejected_role   VARCHAR(20),
+  rejected_at     TIMESTAMPTZ,
+
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

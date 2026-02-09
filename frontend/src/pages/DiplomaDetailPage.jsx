@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Tag, Button, Space, Typography, Row, Col, Spin, message, Divider, Descriptions, Table, Image, Modal, Upload } from "antd";
+import { Card, Tag, Button, Space, Typography, Row, Col, Spin, message, Divider, Descriptions, Table, Image, Modal, Upload, Alert, Input } from "antd";
 import {
     ArrowLeftOutlined,
     CheckCircleOutlined,
@@ -21,6 +21,8 @@ import {
     rejectDiploma,
     issueDiploma,
     revokeDiploma,
+    rejectIssueDiploma,
+    resubmitDiploma,
     getApprovalLogs,
     getChainLogs
 } from "../api/diplomas";
@@ -30,6 +32,7 @@ const { Title, Text } = Typography;
 const STATUS = {
     PENDING: "PENDING",
     APPROVED: "APPROVED",
+    REJECTED: "REJECTED",
     ISSUED: "ISSUED",
     REVOKED: "REVOKED",
 };
@@ -44,6 +47,8 @@ export function DiplomaDetailPage() {
     const [fileUrls, setFileUrls] = useState({ PORTRAIT: null, DIPLOMA: null, TRANSCRIPT: null });
     const [walletModal, setWalletModal] = useState({ open: false, action: null });
     const [walletFile, setWalletFile] = useState(null);
+    const [rejectIssueModal, setRejectIssueModal] = useState(false);
+    const [rejectIssueReason, setRejectIssueReason] = useState("");
 
     const userStr = localStorage.getItem("user");
     const user = userStr ? JSON.parse(userStr) : null;
@@ -168,10 +173,33 @@ export function DiplomaDetailPage() {
         }
     };
 
+    const handleRejectIssue = async () => {
+        try {
+            await rejectIssueDiploma(id, rejectIssueReason);
+            message.success("Đã từ chối phát hành");
+            setRejectIssueModal(false);
+            setRejectIssueReason("");
+            fetchDiploma();
+        } catch (e) {
+            message.error(e.response?.data?.message || "Lỗi khi từ chối phát hành");
+        }
+    };
+
+    const handleResubmit = async () => {
+        try {
+            await resubmitDiploma(id);
+            message.success("Đã gửi lại duyệt");
+            fetchDiploma();
+        } catch (e) {
+            message.error(e.response?.data?.message || "Lỗi khi gửi lại");
+        }
+    };
+
     const getStatusColor = (status) => {
         switch (status) {
             case STATUS.ISSUED: return "success";
             case STATUS.REVOKED: return "error";
+            case STATUS.REJECTED: return "magenta";
             case STATUS.APPROVED: return "processing";
             default: return "warning";
         }
@@ -181,6 +209,7 @@ export function DiplomaDetailPage() {
         switch (status) {
             case STATUS.ISSUED: return <CheckCircleOutlined />;
             case STATUS.REVOKED: return <CloseCircleOutlined />;
+            case STATUS.REJECTED: return <CloseCircleOutlined />;
             case STATUS.APPROVED: return <ExclamationCircleOutlined />;
             default: return <ClockCircleOutlined />;
         }
@@ -333,6 +362,16 @@ export function DiplomaDetailPage() {
 
                 <Divider />
 
+                {diploma.status === "REJECTED" && diploma.rejected_reason && (
+                    <Alert
+                        type="error"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                        message={`Bị từ chối bởi: ${diploma.rejected_role === "PRINCIPAL" ? "Hiệu trưởng" : "Quản lý"}`}
+                        description={diploma.rejected_reason}
+                    />
+                )}
+
                 <Row justify="end">
                     <Space>
                         {role === "STAFF" && diploma.status === STATUS.PENDING && (
@@ -342,6 +381,20 @@ export function DiplomaDetailPage() {
                             >
                                 Sửa hồ sơ
                             </Button>
+                        )}
+
+                        {role === "STAFF" && diploma.status === "REJECTED" && (
+                            <>
+                                <Button
+                                    icon={<EditOutlined />}
+                                    onClick={() => navigate("/create", { state: { diplomaId: id } })}
+                                >
+                                    Sửa hồ sơ
+                                </Button>
+                                <Button type="primary" onClick={handleResubmit}>
+                                    Gửi lại duyệt
+                                </Button>
+                            </>
                         )}
 
                         {role === "MANAGER" && diploma.status === STATUS.PENDING && (
@@ -356,9 +409,14 @@ export function DiplomaDetailPage() {
                         )}
 
                         {role === "ISSUER" && diploma.status === STATUS.APPROVED && (
-                            <Button type="primary" icon={<RocketOutlined />} onClick={handleIssue}>
-                                Phát hành
-                            </Button>
+                            <>
+                                <Button type="primary" icon={<RocketOutlined />} onClick={handleIssue}>
+                                    Phát hành
+                                </Button>
+                                <Button danger icon={<CloseCircleOutlined />} onClick={() => setRejectIssueModal(true)}>
+                                    Từ chối phát hành
+                                </Button>
+                            </>
                         )}
 
                         {role === "ISSUER" && diploma.status === STATUS.ISSUED && (
@@ -425,6 +483,25 @@ export function DiplomaDetailPage() {
                 >
                     <Button icon={<UploadOutlined />}>Chọn wallet.json</Button>
                 </Upload>
+            </Modal>
+
+            {/* Modal từ chối phát hành */}
+            <Modal
+                title="Từ chối phát hành"
+                open={rejectIssueModal}
+                onOk={handleRejectIssue}
+                onCancel={() => { setRejectIssueModal(false); setRejectIssueReason(""); }}
+                okText="Xác nhận từ chối"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+            >
+                <p>Nhập lý do từ chối phát hành:</p>
+                <Input.TextArea
+                    rows={3}
+                    value={rejectIssueReason}
+                    onChange={(e) => setRejectIssueReason(e.target.value)}
+                    placeholder="Lý do từ chối..."
+                />
             </Modal>
         </div>
     );

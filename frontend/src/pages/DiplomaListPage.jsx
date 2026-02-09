@@ -19,6 +19,7 @@ const { Title, Text } = Typography;
 const STATUS = {
     PENDING: "PENDING",
     APPROVED: "APPROVED",
+    REJECTED: "REJECTED",
     ISSUED: "ISSUED",
     REVOKED: "REVOKED",
 };
@@ -55,6 +56,7 @@ export function DiplomaListPage() {
         total: diplomas.length,
         pending: diplomas.filter((d) => d.status === STATUS.PENDING).length,
         approved: diplomas.filter((d) => d.status === STATUS.APPROVED).length,
+        rejected: diplomas.filter((d) => d.status === STATUS.REJECTED).length,
         issued: diplomas.filter((d) => d.status === STATUS.ISSUED).length,
         revoked: diplomas.filter((d) => d.status === STATUS.REVOKED).length,
     };
@@ -66,6 +68,8 @@ export function DiplomaListPage() {
                 return "success";
             case STATUS.REVOKED:
                 return "error";
+            case STATUS.REJECTED:
+                return "magenta";
             case STATUS.APPROVED:
                 return "processing";
             default:
@@ -78,6 +82,8 @@ export function DiplomaListPage() {
             case STATUS.ISSUED:
                 return <CheckCircleOutlined />;
             case STATUS.REVOKED:
+                return <CloseCircleOutlined />;
+            case STATUS.REJECTED:
                 return <CloseCircleOutlined />;
             case STATUS.APPROVED:
                 return <ExclamationCircleOutlined />;
@@ -196,6 +202,15 @@ export function DiplomaListPage() {
                             title="Đã thu hồi"
                             value={stats.revoked}
                             valueStyle={{ color: "#ff4d4f" }}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={12} sm={8} md={4}>
+                    <Card className="stat-card rejected">
+                        <Statistic
+                            title="Bị từ chối"
+                            value={stats.rejected}
+                            valueStyle={{ color: "#eb2f96" }}
                         />
                     </Card>
                 </Col>

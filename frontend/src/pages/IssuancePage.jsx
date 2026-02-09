@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Tabs, Table, Button, Tag, Typography, Divider, Space, Modal, Upload, message, Tooltip, Empty, Spin } from "antd";
+import { Card, Tabs, Table, Button, Tag, Typography, Divider, Space, Modal, Upload, message, Tooltip, Empty, Spin, Input } from "antd";
 import {
     SendOutlined,
     CheckCircleOutlined,
@@ -11,7 +11,7 @@ import {
     UploadOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { listDiplomas, issueDiploma, revokeDiploma, createWallet } from "../api/diplomas";
+import { listDiplomas, issueDiploma, revokeDiploma, rejectIssueDiploma, createWallet } from "../api/diplomas";
 import "../styles/pages.css";
 
 const { Title, Text } = Typography;
@@ -28,6 +28,8 @@ export function IssuancePage() {
     const [loading, setLoading] = useState(false);
     const [walletModal, setWalletModal] = useState({ open: false, action: null, record: null });
     const [walletFile, setWalletFile] = useState(null);
+    const [rejectModal, setRejectModal] = useState({ open: false, record: null });
+    const [rejectReason, setRejectReason] = useState("");
     const navigate = useNavigate();
 
     const fetchDiplomas = async () => {
@@ -105,6 +107,24 @@ export function IssuancePage() {
         }
     };
 
+    const handleRejectIssue = async () => {
+        const { record } = rejectModal;
+        if (!record) return;
+        try {
+            setLoading(true);
+            await rejectIssueDiploma(record.id, rejectReason);
+            message.success(`Đã từ chối phát hành văn bằng ${record.serial_no}`);
+            fetchDiplomas();
+        } catch (e) {
+            console.error("Reject issue error:", e);
+            message.error(e.response?.data?.message || "Lỗi khi từ chối phát hành");
+        } finally {
+            setLoading(false);
+            setRejectModal({ open: false, record: null });
+            setRejectReason("");
+        }
+    };
+
     const columnsReady = [
         {
             title: "Số hiệu",
@@ -124,7 +144,7 @@ export function IssuancePage() {
         },
         {
             title: "Hành động",
-            width: 180,
+            width: 260,
             align: "center",
             render: (_, record) => (
                 <Space>
@@ -133,6 +153,9 @@ export function IssuancePage() {
                     </Tooltip>
                     <Button type="primary" icon={<RocketOutlined />} onClick={() => openWalletModal("issue", record)}>
                         Phát hành
+                    </Button>
+                    <Button danger icon={<CloseCircleOutlined />} onClick={() => { setRejectReason(""); setRejectModal({ open: true, record }); }}>
+                        Từ chối
                     </Button>
                 </Space>
             ),
@@ -325,6 +348,26 @@ export function IssuancePage() {
                 >
                     <Button icon={<UploadOutlined />}>Chọn wallet.json</Button>
                 </Upload>
+            </Modal>
+
+            {/* Modal từ chối phát hành */}
+            <Modal
+                title="Từ chối phát hành"
+                open={rejectModal.open}
+                onOk={handleRejectIssue}
+                onCancel={() => { setRejectModal({ open: false, record: null }); setRejectReason(""); }}
+                okText="Xác nhận từ chối"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+                confirmLoading={loading}
+            >
+                <p>Nhập lý do từ chối phát hành văn bằng <b>{rejectModal.record?.serial_no}</b>:</p>
+                <Input.TextArea
+                    rows={3}
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Lý do từ chối..."
+                />
             </Modal>
         </div>
     );

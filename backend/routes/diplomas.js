@@ -405,10 +405,10 @@ router.post("/:id/reject", requireAuth, requireRole("MANAGER"), async (req, res,
 
             const r1 = await client.query(
                 `UPDATE diplomas
-           SET status='REJECTED', updated_at=now()
-           WHERE id=$1
+           SET status='REJECTED', rejected_reason=$1, rejected_role='MANAGER', rejected_at=now(), updated_at=now()
+           WHERE id=$2
            RETURNING id, serial_no, status, updated_at`,
-                [id]
+                [note || null, id]
             );
 
             await client.query(
@@ -601,6 +601,79 @@ router.post("/:id/revoke", requireAuth, requireRole("ISSUER"), walletUpload.sing
 
         await client.query("COMMIT");
         res.json({ ok: true, data: { diploma: r1.rows[0], onchain } });
+    } catch (e) {
+        await client.query("ROLLBACK");
+        next(e);
+    } finally {
+        client.release();
+    }
+});
+
+// ---------------------------
+// POST /api/diplomas/:id/reject-issue (ISSUER/PRINCIPAL)
+// Từ chối phát hành: APPROVED -> REJECTED
+// ---------------------------
+router.post("/:id/reject-issue", requireAuth, requireRole("ISSUER"), async (req, res, next) => {
+    const client = await pool.connect();
+    try {
+        const id = Number(req.params.id);
+        const reason = (req.body?.reason || "").toString().trim();
+
+        await client.query("BEGIN");
+        const r0 = await client.query("SELECT status FROM diplomas WHERE id=$1 FOR UPDATE", [id]);
+        const d0 = r0.rows[0];
+        if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
+        if (d0.status !== "APPROVED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only APPROVED can be reject-issued" }); }
+
+        const r1 = await client.query(
+            `UPDATE diplomas
+       SET status='REJECTED', rejected_reason=$1, rejected_role='PRINCIPAL', rejected_at=now(), updated_at=now()
+       WHERE id=$2
+       RETURNING id, serial_no, status, rejected_reason, rejected_role, rejected_at`,
+            [reason || null, id]
+        );
+
+        await client.query(
+            `INSERT INTO approval_logs(diploma_id, actor_id, action, note)
+       VALUES($1,$2,'REJECT',$3)`,
+            [id, req.user.id, reason || null]
+        );
+
+        await client.query("COMMIT");
+        res.json({ ok: true, data: r1.rows[0] });
+    } catch (e) {
+        await client.query("ROLLBACK");
+        next(e);
+    } finally {
+        client.release();
+    }
+});
+
+// ---------------------------
+// POST /api/diplomas/:id/resubmit (STAFF)
+// Gửi lại: REJECTED -> PENDING
+// ---------------------------
+router.post("/:id/resubmit", requireAuth, requireRole("STAFF"), async (req, res, next) => {
+    const client = await pool.connect();
+    try {
+        const id = Number(req.params.id);
+
+        await client.query("BEGIN");
+        const r0 = await client.query("SELECT status FROM diplomas WHERE id=$1 FOR UPDATE", [id]);
+        const d0 = r0.rows[0];
+        if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
+        if (d0.status !== "REJECTED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only REJECTED can be resubmitted" }); }
+
+        const r1 = await client.query(
+            `UPDATE diplomas
+       SET status='PENDING', rejected_reason=NULL, rejected_role=NULL, rejected_at=NULL, updated_at=now()
+       WHERE id=$1
+       RETURNING id, serial_no, status, updated_at`,
+            [id]
+        );
+
+        await client.query("COMMIT");
+        res.json({ ok: true, data: r1.rows[0] });
     } catch (e) {
         await client.query("ROLLBACK");
         next(e);
