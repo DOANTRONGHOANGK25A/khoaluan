@@ -19,6 +19,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
+    "fabric-ca-client": "^2.5.0",
     "multer": "^2.0.2",
     "pg": "^8.18.0",
     "react-router-dom": "^7.13.0"

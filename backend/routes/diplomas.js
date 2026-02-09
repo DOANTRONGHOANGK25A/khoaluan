@@ -388,18 +388,37 @@ router.post("/:id/issue", requireAuth, requireRole("ISSUER"), walletUpload.singl
         const id = Number(req.params.id);
         await client.query("BEGIN");
 
+        // Lấy đầy đủ thông tin diploma
         const r0 = await client.query(
-            "SELECT id, serial_no, status FROM diplomas WHERE id=$1 FOR UPDATE",
+            `SELECT id, serial_no, student_id, student_name, birth_date, major, ranking, gpa, graduation_year, status 
+             FROM diplomas WHERE id=$1 FOR UPDATE`,
             [id]
         );
         const d = r0.rows[0];
         if (!d) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
         if (d.status !== "APPROVED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only APPROVED can be issued" }); }
 
+        // Tính recordHash
         const { recordHash } = await computeRecordHashByDiplomaId(id);
 
+        // Tạo object chứa đủ thông tin để ghi on-chain
         const issuedAt = new Date().toISOString();
-        const onchain = await chainIssueWithWallet(d.serial_no, recordHash, issuedAt, mspId, certificate, privateKey);
+        const diplomaData = {
+            studentId: d.student_id,
+            studentName: d.student_name,
+            birthDate: d.birth_date ? d.birth_date.toISOString().slice(0, 10) : "",
+            major: d.major || "",
+            ranking: d.ranking || "",
+            gpa: d.gpa || "",
+            graduationYear: d.graduation_year || "",
+            recordHash,
+            status: "ISSUED",
+            issuedAt,
+            revokedAt: null
+        };
+
+        // Gọi chaincode với jsonRecordString
+        const onchain = await chainIssueWithWallet(d.serial_no, diplomaData, mspId, certificate, privateKey);
 
         const r1 = await client.query(
             `UPDATE diplomas

@@ -222,7 +222,7 @@ export function VerifyPage() {
                             <Button
                                 icon={<LinkOutlined />}
                                 disabled={!verifyData}
-                                onClick={() => {/* scroll xuống — dữ liệu đã hiện bên dưới */}}
+                                onClick={() => {/* scroll xuống — dữ liệu đã hiện bên dưới */ }}
                             >
                                 Xem dữ liệu trên blockchain
                             </Button>
@@ -256,6 +256,14 @@ export function VerifyPage() {
                                                 {verifyData.onchain.status}
                                             </Tag>
                                         </Descriptions.Item>
+                                        <Descriptions.Item label="Số hiệu">{verifyData.onchain.serialNo || "—"}</Descriptions.Item>
+                                        <Descriptions.Item label="Mã sinh viên">{verifyData.onchain.studentId || "—"}</Descriptions.Item>
+                                        <Descriptions.Item label="Họ và tên">{verifyData.onchain.studentName || "—"}</Descriptions.Item>
+                                        <Descriptions.Item label="Ngày sinh">{verifyData.onchain.birthDate || "—"}</Descriptions.Item>
+                                        <Descriptions.Item label="Ngành">{verifyData.onchain.major || "—"}</Descriptions.Item>
+                                        <Descriptions.Item label="Xếp loại">{verifyData.onchain.ranking || "—"}</Descriptions.Item>
+                                        <Descriptions.Item label="GPA">{verifyData.onchain.gpa || "—"}</Descriptions.Item>
+                                        <Descriptions.Item label="Năm tốt nghiệp">{verifyData.onchain.graduationYear || "—"}</Descriptions.Item>
                                         <Descriptions.Item label="On-chain RecordHash">
                                             <Text code copyable style={{ fontSize: 11, wordBreak: "break-all" }}>
                                                 {verifyData.onchain.recordHash}

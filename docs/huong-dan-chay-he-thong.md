@@ -303,10 +303,11 @@ Tính recordHash = SHA256(canonical text gồm thông tin SV + SHA256 mỗi file
 Tạo Fabric gateway tạm bằng cert/key từ wallet
         │
         ▼
-submitTransaction("IssueDiploma", serialNo, recordHash, issuedAt)
+submitTransaction("IssueDiploma", serialNo, jsonRecordString)
+   jsonRecordString = JSON.stringify({ studentId, studentName, birthDate, major, ranking, gpa, graduationYear, recordHash, issuedAt })
         │
         ▼
-Chaincode ghi lên ledger: { serialNo, recordHash, status: "ISSUED", txId }
+Chaincode ghi lên ledger: { serialNo, studentId, studentName, birthDate, major, ranking, gpa, graduationYear, recordHash, status: "ISSUED", issuedAt, revokedAt: null, txId }
         │
         ▼
 Đóng gateway tạm

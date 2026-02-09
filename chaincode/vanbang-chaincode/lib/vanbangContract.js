@@ -7,20 +7,19 @@ function ensureSerial(serialNo) {
     return serialNo.trim();
 }
 
-function ensureHash(recordHash) {
-    if (!recordHash || typeof recordHash !== "string") throw new Error("recordHash required");
-    const h = recordHash.trim().toLowerCase();
-    if (!/^[0-9a-f]{64}$/.test(h)) throw new Error("recordHash must be 64 hex chars");
-    return h;
-}
-
 function ensureIsoTime(t) {
     if (!t) return new Date().toISOString();
     return t.toString();
 }
 
 class VanBangContract extends Contract {
-    async ReadDiploma(ctx, serialNo) {
+    /**
+     * Query diploma by serialNo
+     * @param {Context} ctx
+     * @param {string} serialNo
+     * @returns {string} JSON string of diploma record
+     */
+    async QueryDiploma(ctx, serialNo) {
         serialNo = ensureSerial(serialNo);
 
         const data = await ctx.stub.getState(serialNo);
@@ -29,18 +28,62 @@ class VanBangContract extends Contract {
         return data.toString();
     }
 
-    async IssueDiploma(ctx, serialNo, recordHash, issuedAt) {
-        serialNo = ensureSerial(serialNo);
-        recordHash = ensureHash(recordHash);
-        issuedAt = ensureIsoTime(issuedAt);
+    /**
+     * Alias for QueryDiploma - backward compatibility
+     */
+    async ReadDiploma(ctx, serialNo) {
+        return this.QueryDiploma(ctx, serialNo);
+    }
 
+    /**
+     * Issue a new diploma
+     * @param {Context} ctx
+     * @param {string} serialNo - unique serial number
+     * @param {string} jsonRecordString - JSON string containing: studentId, studentName, birthDate, major, ranking, gpa, graduationYear, recordHash, issuedAt
+     * @returns {string} JSON string of created diploma
+     */
+    async IssueDiploma(ctx, serialNo, jsonRecordString) {
+        serialNo = ensureSerial(serialNo);
+
+        // Check if already exists
         const exists = await ctx.stub.getState(serialNo);
         if (exists && exists.length > 0) throw new Error("ALREADY_EXISTS");
 
-        const txId = ctx.stub.getTxID();
+        // Parse input JSON
+        let input;
+        try {
+            input = JSON.parse(jsonRecordString);
+        } catch (e) {
+            throw new Error("INVALID_JSON: " + e.message);
+        }
 
+        // Validate required fields
+        const requiredFields = ["studentId", "studentName", "birthDate", "major", "ranking", "gpa", "graduationYear", "recordHash"];
+        for (const field of requiredFields) {
+            if (input[field] === undefined || input[field] === null || input[field] === "") {
+                throw new Error(`MISSING_FIELD: ${field}`);
+            }
+        }
+
+        // Validate recordHash format (64 hex chars)
+        const recordHash = input.recordHash.trim().toLowerCase();
+        if (!/^[0-9a-f]{64}$/.test(recordHash)) {
+            throw new Error("recordHash must be 64 hex chars");
+        }
+
+        const txId = ctx.stub.getTxID();
+        const issuedAt = ensureIsoTime(input.issuedAt);
+
+        // Build full on-chain object with all required fields
         const obj = {
             serialNo,
+            studentId: input.studentId,
+            studentName: input.studentName,
+            birthDate: input.birthDate,
+            major: input.major,
+            ranking: input.ranking,
+            gpa: input.gpa,
+            graduationYear: input.graduationYear,
             recordHash,
             status: "ISSUED",
             issuedAt,
@@ -52,6 +95,13 @@ class VanBangContract extends Contract {
         return JSON.stringify(obj);
     }
 
+    /**
+     * Revoke an existing diploma
+     * @param {Context} ctx
+     * @param {string} serialNo
+     * @param {string} revokedAt - ISO timestamp
+     * @returns {string} JSON string of updated diploma
+     */
     async RevokeDiploma(ctx, serialNo, revokedAt) {
         serialNo = ensureSerial(serialNo);
         revokedAt = ensureIsoTime(revokedAt);

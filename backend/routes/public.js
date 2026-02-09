@@ -89,10 +89,19 @@ router.get("/verify", async (req, res, next) => {
         let onchain = { exists: false };
         try {
             const oc = await chainRead(d.serial_no);
+            // Trả về full record từ chaincode
             onchain = {
                 exists: true,
-                status: oc.status || null,
+                serialNo: oc.serialNo || null,
+                studentId: oc.studentId || null,
+                studentName: oc.studentName || null,
+                birthDate: oc.birthDate || null,
+                major: oc.major || null,
+                ranking: oc.ranking || null,
+                gpa: oc.gpa || null,
+                graduationYear: oc.graduationYear || null,
                 recordHash: oc.recordHash || null,
+                status: oc.status || null,
                 issuedAt: oc.issuedAt || null,
                 revokedAt: oc.revokedAt || null,
                 txId: oc.txId || null,
