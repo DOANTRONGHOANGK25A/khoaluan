@@ -8,10 +8,19 @@ set -e
 NETWORK_DIR="/home/hoang/khoa-luan/network/fabric-samples/test-network"
 CHAINCODE_DIR="/home/hoang/khoa-luan/chaincode/vanbang-chaincode"
 
+CC_NAME="vanbang"
+
 echo "📦 Bước 0: Install chaincode dependencies..."
 cd "$CHAINCODE_DIR"
 npm install --production
 cd "$NETWORK_DIR"
+
+echo ""
+echo "🧹 Bước 0.5: Dọn dẹp container ccaas cũ (tránh name conflict)..."
+docker stop peer0org1_${CC_NAME}_ccaas peer0org2_${CC_NAME}_ccaas 2>/dev/null || true
+docker rm -f peer0org1_${CC_NAME}_ccaas peer0org2_${CC_NAME}_ccaas 2>/dev/null || true
+# Dọn tất cả container ccaas còn sót
+docker rm -f $(docker ps -aq --filter name=ccaas) 2>/dev/null || true
 
 echo ""
 echo "🔧 Bước 1: Dọn dẹp network cũ..."
@@ -23,7 +32,7 @@ echo "🚀 Bước 2: Khởi động network + tạo channel (có CA)..."
 
 echo ""
 echo "📦 Bước 3: Deploy chaincode 'vanbang'..."
-./network.sh deployCCAAS -ccn vanbang -ccp "$CHAINCODE_DIR"
+./network.sh deployCCAAS -ccn "$CC_NAME" -ccp "$CHAINCODE_DIR"
 
 echo ""
 echo "✅ HOÀN TẤT! Fabric network đang chạy + chaincode 'vanbang' đã deploy."

@@ -53,13 +53,7 @@ export function DiplomaDetailPage() {
         if (!id) return;
         fetchDiploma();
         fetchFiles();
-
-        return () => {
-            // Cleanup ObjectURLs
-            Object.values(fileUrls).forEach(url => {
-                if (url) URL.revokeObjectURL(url);
-            });
-        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const fetchFiles = async () => {
@@ -116,7 +110,7 @@ export function DiplomaDetailPage() {
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
-        } catch (error) {
+        } catch {
             message.error("Lỗi khi tải file");
         }
     };
@@ -126,7 +120,7 @@ export function DiplomaDetailPage() {
             await approveDiploma(id, "");
             message.success("Đã duyệt hồ sơ");
             fetchDiploma();
-        } catch (e) {
+        } catch {
             message.error("Lỗi khi duyệt");
         }
     };
@@ -139,7 +133,7 @@ export function DiplomaDetailPage() {
             await rejectDiploma(id, reason);
             message.success("Đã từ chối hồ sơ");
             fetchDiploma();
-        } catch (e) {
+        } catch {
             message.error("Lỗi khi từ chối");
         }
     };

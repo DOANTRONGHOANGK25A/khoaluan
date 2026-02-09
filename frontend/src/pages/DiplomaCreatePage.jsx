@@ -31,6 +31,7 @@ export function DiplomaCreatePage() {
         if (isEditMode) {
             fetchDiplomaData();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [diplomaId]);
 
     const fetchDiplomaData = async () => {

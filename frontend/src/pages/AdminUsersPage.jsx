@@ -80,7 +80,7 @@ export function AdminUsersPage() {
         }
     };
 
-    const handleDelete = (record) => {
+    const handleDelete = () => {
         message.info(`Chức năng xóa chưa được triển khai`);
     };
 

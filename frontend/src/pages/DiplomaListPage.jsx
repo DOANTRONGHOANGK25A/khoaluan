@@ -11,7 +11,7 @@ import {
     UserOutlined,
     ReloadOutlined,
 } from "@ant-design/icons";
-import { listDiplomas, downloadDiplomaFile } from "../api/diplomas";
+import { listDiplomas } from "../api/diplomas";
 import "../styles/pages.css";
 
 const { Title, Text } = Typography;
@@ -35,7 +35,7 @@ export function DiplomaListPage() {
             if (res.ok) {
                 setDiplomas(res.data || []);
             }
-        } catch (err) {
+        } catch {
             message.error("Không thể tải danh sách hồ sơ");
         } finally {
             setLoading(false);

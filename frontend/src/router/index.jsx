@@ -8,7 +8,6 @@ import { ApprovalPage } from "../pages/ApprovalPage";
 import { IssuancePage } from "../pages/IssuancePage";
 import { AdminUsersPage } from "../pages/AdminUsersPage";
 import { LoginPage } from "../pages/LoginPage";
-import api from "../api/api";
 const router = createBrowserRouter([
     {
         path: "/login",
