@@ -102,7 +102,7 @@ export function StaffDashboardPage() {
                         <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
                     </Tooltip>
                     <Tooltip title="Chỉnh sửa">
-                        <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
+                        <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`/create`, { state: { diplomaId: record.id } })} />
                     </Tooltip>
                 </Space>
             ),
@@ -163,7 +163,7 @@ export function StaffDashboardPage() {
                         <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
                     </Tooltip>
                     <Tooltip title="Chỉnh sửa & gửi lại">
-                        <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`/diplomas/${record.id}`)} />
+                        <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`/create`, { state: { diplomaId: record.id } })} />
                     </Tooltip>
                     <Tooltip title="Gửi lại duyệt">
                         <Button type="text" icon={<RedoOutlined />} style={{ color: '#1890ff' }} onClick={() => handleResubmit(record)} />
@@ -236,7 +236,7 @@ export function StaffDashboardPage() {
                             icon={<ExclamationCircleOutlined />}
                             message={
                                 <Text>
-                                    Có <Text strong style={{ color: "#eb2f96" }}>{rejected.length}</Text> hồ sơ bị từ chối. 
+                                    Có <Text strong style={{ color: "#eb2f96" }}>{rejected.length}</Text> hồ sơ bị từ chối.
                                     Vui lòng chỉnh sửa và gửi lại duyệt.
                                 </Text>
                             }

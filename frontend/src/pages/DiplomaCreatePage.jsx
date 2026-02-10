@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Card, Form, Input, InputNumber, Select, Button, Space, Upload, Typography, Divider, Row, Col, message, Avatar, Spin, Image } from "antd";
+import { Card, Form, Input, InputNumber, Select, Button, Space, Upload, Typography, Divider, Row, Col, message, Avatar, Spin, Image, DatePicker } from "antd";
+import dayjs from "dayjs";
 import { InboxOutlined, PlusCircleOutlined, SaveOutlined, CloseOutlined, UserOutlined, CameraOutlined, EditOutlined, UploadOutlined } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createDiploma, getDiplomaById, updateDiploma, downloadDiplomaFile } from "../api/diplomas";
@@ -44,7 +45,7 @@ export function DiplomaCreatePage() {
                     serialNo: data.serial_no,
                     studentId: data.student_id,
                     studentName: data.student_name,
-                    birthDate: data.birth_date,
+                    birthDate: data.birth_date ? dayjs(data.birth_date, "YYYY-MM-DD") : null,
                     major: data.major,
                     ranking: data.ranking,
                     gpa: data.gpa,
@@ -158,7 +159,7 @@ export function DiplomaCreatePage() {
                 fd.append("serialNo", values.serialNo);
                 fd.append("studentId", values.studentId);
                 fd.append("studentName", values.studentName);
-                fd.append("birthDate", values.birthDate || "");
+                fd.append("birthDate", values.birthDate ? values.birthDate.format("YYYY-MM-DD") : "");
                 fd.append("major", values.major || "");
                 fd.append("ranking", values.ranking || "");
                 fd.append("gpa", values.gpa ? String(values.gpa) : "");
@@ -179,7 +180,7 @@ export function DiplomaCreatePage() {
                     serialNo: values.serialNo,
                     studentId: values.studentId,
                     studentName: values.studentName,
-                    birthDate: values.birthDate || "",
+                    birthDate: values.birthDate ? values.birthDate.format("YYYY-MM-DD") : "",
                     major: values.major || "",
                     ranking: values.ranking || "",
                     gpa: values.gpa ? String(values.gpa) : "",
@@ -346,11 +347,10 @@ export function DiplomaCreatePage() {
                                 label="Ngày sinh"
                                 name="birthDate"
                                 rules={[
-                                    { required: true, message: "Vui lòng nhập ngày sinh" },
-                                    { pattern: /^\d{4}-\d{2}-\d{2}$/, message: "Định dạng: YYYY-MM-DD" },
+                                    { required: true, message: "Vui lòng chọn ngày sinh" },
                                 ]}
                             >
-                                <Input placeholder="YYYY-MM-DD" />
+                                <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" placeholder="Chọn ngày sinh" inputReadOnly />
                             </Form.Item>
                         </Col>
                     </Row>

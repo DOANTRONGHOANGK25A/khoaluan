@@ -232,7 +232,7 @@ router.put(
                VALUES($1,$2,$3,$4,$5,$6,$7)
                ON CONFLICT (diploma_id, kind)
                DO UPDATE SET filename=EXCLUDED.filename, mime_type=EXCLUDED.mime_type,
-                             size_bytes=EXCLUDED.size_bytes, data=EXCLUDED.data, sha256=EXCLUDED.sha256, updated_at=now()`,
+                             size_bytes=EXCLUDED.size_bytes, data=EXCLUDED.data, sha256=EXCLUDED.sha256, uploaded_at=now()`,
                     [id, kind, f.originalname, f.mimetype, f.size, f.buffer, hash]
                 );
             };

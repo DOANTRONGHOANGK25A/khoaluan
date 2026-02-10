@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Form, Input, Button, Card, Checkbox, Typography, Space, message, Table, Tag } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import api from "../api/api";
 import "../styles/login.css";
 
@@ -17,7 +17,17 @@ const demoAccounts = [
 
 export function LoginPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
+
+    // Nếu đã đăng nhập rồi thì không cho vào trang login nữa
+    const existingToken = localStorage.getItem("token");
+    if (existingToken) {
+        return <Navigate to="/verify" replace />;
+    }
+
+    // Trang mà user muốn truy cập trước khi bị chuyển về login
+    const from = location.state?.from?.pathname || "/verify";
 
     const onFinish = async (values) => {
         setLoading(true);
@@ -32,7 +42,7 @@ export function LoginPage() {
                 localStorage.setItem("token", token);
                 localStorage.setItem("user", JSON.stringify(user));
                 message.success("Đăng nhập thành công!");
-                navigate("/verify");
+                navigate(from, { replace: true });
             }
         } catch (err) {
             const msg = err.response?.data?.message || "Đăng nhập thất bại";
@@ -152,7 +162,8 @@ export function LoginPage() {
 
                         <Form.Item style={{ marginBottom: 0 }}>
                             <Button block onClick={() => {
-                                localStorage.clear();
+                                localStorage.removeItem("token");
+                                localStorage.removeItem("user");
                                 navigate("/verify");
                             }}>
                                 Truy cập với tư cách Khách
