@@ -20,19 +20,19 @@ router.get("/search", async (req, res, next) => {
         if (type === "serialNo") {
             const r = await pool.query(
                 `SELECT id, serial_no, student_id, student_name, birth_date, major, ranking, gpa, graduation_year, status
-                 FROM diplomas WHERE serial_no = $1`, [value]
+                 FROM diplomas WHERE serial_no = $1 AND status IN ('ISSUED', 'REVOKED')`, [value]
             );
             rows = r.rows;
         } else if (type === "studentId") {
             const r = await pool.query(
                 `SELECT id, serial_no, student_id, student_name, birth_date, major, ranking, gpa, graduation_year, status
-                 FROM diplomas WHERE student_id = $1 LIMIT 20`, [value]
+                 FROM diplomas WHERE student_id = $1 AND status IN ('ISSUED', 'REVOKED') LIMIT 20`, [value]
             );
             rows = r.rows;
         } else if (type === "studentName") {
             const r = await pool.query(
                 `SELECT id, serial_no, student_id, student_name, birth_date, major, ranking, gpa, graduation_year, status
-                 FROM diplomas WHERE student_name ILIKE $1 LIMIT 20`, [`%${value}%`]
+                 FROM diplomas WHERE student_name ILIKE $1 AND status IN ('ISSUED', 'REVOKED') LIMIT 20`, [`%${value}%`]
             );
             rows = r.rows;
         } else {
@@ -68,14 +68,10 @@ router.get("/verify", async (req, res, next) => {
             "SELECT id, serial_no, status FROM diplomas WHERE serial_no=$1", [serialNo]
         );
         const d = r.rows[0];
-        if (!d) {
-            return res.json({
-                ok: true,
-                serialNo,
-                computedRecordHash: null,
-                offchainStatus: null,
-                onchain: { exists: false },
-                match: false,
+        if (!d || (d.status !== 'ISSUED' && d.status !== 'REVOKED')) {
+            return res.status(404).json({
+                ok: false,
+                message: "Diploma not found or not publicly available"
             });
         }
 
@@ -132,6 +128,15 @@ router.get("/diplomas/:id/files/:kind", async (req, res, next) => {
         const allowed = ["PORTRAIT", "DIPLOMA", "TRANSCRIPT"];
         if (!allowed.includes(kind)) {
             return res.status(400).json({ ok: false, message: "Invalid kind" });
+        }
+
+        // Check if diploma exists and has public status
+        const diplomaCheck = await pool.query(
+            "SELECT status FROM diplomas WHERE id=$1", [id]
+        );
+        const diploma = diplomaCheck.rows[0];
+        if (!diploma || (diploma.status !== 'ISSUED' && diploma.status !== 'REVOKED')) {
+            return res.status(404).json({ ok: false, message: "Diploma not found or not publicly available" });
         }
 
         const r = await pool.query(

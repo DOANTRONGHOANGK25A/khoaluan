@@ -218,13 +218,16 @@ export function IssuancePage() {
         { title: "Ngành", dataIndex: "major", ellipsis: true },
         {
             title: "TxID",
-            dataIndex: "tx_id",
+            dataIndex: "last_tx_id",
             ellipsis: true,
-            render: (text) => (
-                <Text code copyable={{ text }}>
-                    {text?.substring(0, 16)}...
-                </Text>
-            ),
+            render: (text, row) => {
+                const txId = row.last_tx_id ?? row.tx_id ?? '';
+                return txId ? (
+                    <Text code copyable={{ text: txId }}>
+                        {txId.substring(0, 16)}...
+                    </Text>
+                ) : "—";
+            },
         },
         {
             title: "Trạng thái",
