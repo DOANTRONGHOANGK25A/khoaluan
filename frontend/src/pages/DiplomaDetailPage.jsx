@@ -37,6 +37,17 @@ const STATUS = {
     REVOKED: "REVOKED",
 };
 
+const getStatusLabel = (status) => {
+    switch (status) {
+        case STATUS.ISSUED: return "Đã phát hành";
+        case STATUS.REVOKED: return "Đã thu hồi";
+        case STATUS.REJECTED: return "Bị từ chối";
+        case STATUS.APPROVED: return "Đã duyệt";
+        case STATUS.PENDING: return "Chờ duyệt";
+        default: return status;
+    }
+};
+
 export function DiplomaDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -263,7 +274,7 @@ export function DiplomaDetailPage() {
                             <Descriptions.Item label="Năm tốt nghiệp">{diploma.graduation_year}</Descriptions.Item>
                             <Descriptions.Item label="Trạng thái">
                                 <Tag icon={getStatusIcon(diploma.status)} color={getStatusColor(diploma.status)}>
-                                    {diploma.status}
+                                    {getStatusLabel(diploma.status)}
                                 </Tag>
                             </Descriptions.Item>
                         </Descriptions>
@@ -284,7 +295,7 @@ export function DiplomaDetailPage() {
                                         </div>
                                     ) : (
                                         <div style={{ padding: 10, textAlign: 'center', background: '#f5f5f5' }}>
-                                            <Spin /> Loading...
+                                            <Spin /> Đang tải...
                                         </div>
                                     )}
                                     <Button
@@ -353,7 +364,7 @@ export function DiplomaDetailPage() {
                             <Card title="Thông tin Blockchain" size="small" type="inner" style={{ marginTop: 16 }}>
                                 <Text type="secondary">Đã được phát hành trên mạng Blockchain.</Text>
                                 <div style={{ marginTop: 8 }}>
-                                    <Tag color="blue">Verified</Tag>
+                                    <Tag color="blue">Đã xác thực</Tag>
                                 </div>
                             </Card>
                         )}
@@ -421,7 +432,7 @@ export function DiplomaDetailPage() {
 
                         {role === "ISSUER" && diploma.status === STATUS.ISSUED && (
                             <Button danger type="primary" onClick={handleRevoke} icon={<StopOutlined />}>
-                                Thu hồi (Revoke)
+                                Thu hồi
                             </Button>
                         )}
                     </Space>
@@ -431,7 +442,7 @@ export function DiplomaDetailPage() {
             {/* Logs Section */}
             <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
                 <Col span={24}>
-                    <Card title="Lịch sử duyệt (Approval Logs)" size="small">
+                    <Card title="Lịch sử duyệt" size="small">
                         <Table
                             dataSource={approvalLogs}
                             rowKey="id"
@@ -446,7 +457,7 @@ export function DiplomaDetailPage() {
                     </Card>
                 </Col>
                 <Col span={24}>
-                    <Card title="Lịch sử Blockchain (Chain Logs)" size="small">
+                    <Card title="Lịch sử Blockchain" size="small">
                         <Table
                             dataSource={chainLogs}
                             rowKey={(r, i) => i}
@@ -456,7 +467,7 @@ export function DiplomaDetailPage() {
                                 { title: "Hành động", dataIndex: "action", render: t => <Tag color="blue">{t}</Tag> },
                                 { title: "Tx ID", dataIndex: "tx_id", ellipsis: true },
                                 { title: "Record Hash", dataIndex: "record_hash", ellipsis: true },
-                                { title: "On-chain Status", dataIndex: "onchain_status" }
+                                { title: "Trạng thái on-chain", dataIndex: "onchain_status" }
                             ]}
                         />
                     </Card>

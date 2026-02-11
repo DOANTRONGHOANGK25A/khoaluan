@@ -77,6 +77,17 @@ export function DiplomaListPage() {
         }
     };
 
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case STATUS.ISSUED: return "Đã phát hành";
+            case STATUS.REVOKED: return "Đã thu hồi";
+            case STATUS.REJECTED: return "Bị từ chối";
+            case STATUS.APPROVED: return "Đã duyệt";
+            case STATUS.PENDING: return "Chờ duyệt";
+            default: return status;
+        }
+    };
+
     const getStatusIcon = (status) => {
         switch (status) {
             case STATUS.ISSUED:
@@ -129,7 +140,7 @@ export function DiplomaListPage() {
             onFilter: (value, record) => record.status === value,
             render: (status) => (
                 <Tag icon={getStatusIcon(status)} color={getStatusColor(status)}>
-                    {status}
+                    {getStatusLabel(status)}
                 </Tag>
             ),
         },

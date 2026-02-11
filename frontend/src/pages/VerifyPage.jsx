@@ -57,7 +57,7 @@ export function VerifyPage() {
         setSelected(record);
         setVerifyData(null); // reset verify cũ
         setDrawerOpen(true);
-        
+
         // Tải file ảnh/tài liệu
         await fetchFiles(record.id);
     };
@@ -78,7 +78,7 @@ export function VerifyPage() {
                     newUrls[type] = null;
                 }
             }));
-            
+
             setFileUrls(newUrls);
         } catch (e) {
             console.error("Error fetching files", e);
@@ -126,29 +126,29 @@ export function VerifyPage() {
 
     // ─── Cột bảng ───
     const columns = [
-        { 
-            title: "Số hiệu", 
-            dataIndex: "serialNo", 
+        {
+            title: "Số hiệu",
+            dataIndex: "serialNo",
             render: (t) => <Text strong copyable>{t}</Text>,
             width: 150,
         },
-        { 
-            title: "Mã SV", 
+        {
+            title: "Mã SV",
             dataIndex: "studentId",
             width: 120,
         },
-        { 
-            title: "Tên SV", 
+        {
+            title: "Tên SV",
             dataIndex: "studentName",
             ellipsis: true,
         },
-        { 
-            title: "Ngành", 
-            dataIndex: "major", 
+        {
+            title: "Ngành",
+            dataIndex: "major",
             ellipsis: true,
         },
-        { 
-            title: "Năm TN", 
+        {
+            title: "Năm TN",
             dataIndex: "graduationYear",
             width: 90,
             align: 'center',
@@ -289,8 +289,8 @@ export function VerifyPage() {
                         <Row gutter={[16, 16]}>
                             {/* Cột trái: Ảnh chân dung */}
                             <Col xs={24} sm={8}>
-                                <Card 
-                                    size="small" 
+                                <Card
+                                    size="small"
                                     title={
                                         <Space>
                                             <UserOutlined />
@@ -322,8 +322,8 @@ export function VerifyPage() {
                                             </Button>
                                         </div>
                                     ) : (
-                                        <Empty 
-                                            image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                                        <Empty
+                                            image={Empty.PRESENTED_IMAGE_SIMPLE}
                                             description="Không có ảnh"
                                             style={{ padding: '20px 0' }}
                                         />
@@ -333,10 +333,10 @@ export function VerifyPage() {
 
                             {/* Cột phải: Thông tin chi tiết */}
                             <Col xs={24} sm={16}>
-                                <Descriptions 
-                                    title="Thông tin văn bằng" 
-                                    bordered 
-                                    column={1} 
+                                <Descriptions
+                                    title="Thông tin văn bằng"
+                                    bordered
+                                    column={1}
                                     size="small"
                                 >
                                     <Descriptions.Item label="Số hiệu">
@@ -353,7 +353,7 @@ export function VerifyPage() {
                                     <Descriptions.Item label="Năm tốt nghiệp">{selected.graduationYear || "—"}</Descriptions.Item>
                                     <Descriptions.Item label="Trạng thái">
                                         <Tag color={selected.status === "ISSUED" ? "success" : selected.status === "REVOKED" ? "error" : "warning"}>
-                                            {selected.status}
+                                            {{ ISSUED: "Đã phát hành", REVOKED: "Đã thu hồi", APPROVED: "Đã duyệt", PENDING: "Chờ duyệt", REJECTED: "Bị từ chối" }[selected.status] || selected.status}
                                         </Tag>
                                     </Descriptions.Item>
                                 </Descriptions>
@@ -362,7 +362,7 @@ export function VerifyPage() {
 
                         {/* ─── Phần 2: Văn bằng và Bảng điểm ─── */}
                         <Divider orientation="left">Tài liệu văn bằng</Divider>
-                        
+
                         <Row gutter={[16, 24]}>
                             {/* Văn bằng tốt nghiệp */}
                             <Col xs={24} lg={12}>
@@ -412,8 +412,8 @@ export function VerifyPage() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <Empty 
-                                            image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                                        <Empty
+                                            image={Empty.PRESENTED_IMAGE_SIMPLE}
                                             description="Không có văn bằng"
                                             style={{ padding: '40px 0' }}
                                         />
@@ -469,8 +469,8 @@ export function VerifyPage() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <Empty 
-                                            image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                                        <Empty
+                                            image={Empty.PRESENTED_IMAGE_SIMPLE}
                                             description="Không có bảng điểm"
                                             style={{ padding: '40px 0' }}
                                         />
@@ -504,10 +504,10 @@ export function VerifyPage() {
                         {verifyData && !verifying && (
                             <div style={{ marginTop: 16 }}>
                                 {/* Tag MATCH / MISMATCH / NOT_FOUND */}
-                                <Card 
-                                    size="small" 
-                                    style={{ 
-                                        textAlign: "center", 
+                                <Card
+                                    size="small"
+                                    style={{
+                                        textAlign: "center",
                                         marginBottom: 16,
                                         background: !verifyData.onchain.exists ? '#fafafa' : verifyData.match ? '#f6ffed' : '#fff2e8',
                                         borderColor: !verifyData.onchain.exists ? '#d9d9d9' : verifyData.match ? '#b7eb8f' : '#ffbb96'
@@ -517,11 +517,11 @@ export function VerifyPage() {
                                         {renderMatchTag()}
                                     </div>
                                     <Text type="secondary" style={{ fontSize: 12 }}>
-                                        {!verifyData.onchain.exists 
+                                        {!verifyData.onchain.exists
                                             ? "Văn bằng chưa được phát hành lên blockchain"
-                                            : verifyData.match 
-                                            ? "Dữ liệu khớp với blockchain - Văn bằng hợp lệ"
-                                            : "Dữ liệu không khớp - Có thể bị giả mạo"}
+                                            : verifyData.match
+                                                ? "Dữ liệu khớp với blockchain - Văn bằng hợp lệ"
+                                                : "Dữ liệu không khớp - Có thể bị giả mạo"}
                                     </Text>
                                 </Card>
 
@@ -534,23 +534,23 @@ export function VerifyPage() {
                                     />
                                 ) : (
                                     <>
-                                        <Descriptions 
-                                            column={1} 
-                                            bordered 
-                                            size="small" 
+                                        <Descriptions
+                                            column={1}
+                                            bordered
+                                            size="small"
                                             title="Dữ liệu trên blockchain"
                                             style={{ marginTop: 16 }}
                                         >
                                             <Descriptions.Item label="Trạng thái">
                                                 <Tag color={verifyData.onchain.status === "ISSUED" ? "success" : "error"}>
-                                                    {verifyData.onchain.status}
+                                                    {{ ISSUED: "Đã phát hành", REVOKED: "Đã thu hồi" }[verifyData.onchain.status] || verifyData.onchain.status}
                                                 </Tag>
                                             </Descriptions.Item>
                                             <Descriptions.Item label="Số hiệu">{verifyData.onchain.serialNo || "—"}</Descriptions.Item>
                                             <Descriptions.Item label="Mã sinh viên">{verifyData.onchain.studentId || "—"}</Descriptions.Item>
                                             <Descriptions.Item label="Họ và tên">{verifyData.onchain.studentName || "—"}</Descriptions.Item>
                                             <Descriptions.Item label="Ngày sinh">
-                                                {verifyData.onchain.birthDate 
+                                                {verifyData.onchain.birthDate
                                                     ? new Date(verifyData.onchain.birthDate).toLocaleDateString('vi-VN')
                                                     : "—"}
                                             </Descriptions.Item>
@@ -561,14 +561,14 @@ export function VerifyPage() {
                                         </Descriptions>
 
                                         <Divider orientation="left" style={{ fontSize: 12 }}>Thông tin kỹ thuật</Divider>
-                                        
+
                                         <Descriptions column={1} bordered size="small">
-                                            <Descriptions.Item label="RecordHash (On-chain)">
+                                            <Descriptions.Item label="Hash bản ghi (On-chain)">
                                                 <Text code copyable={{ text: verifyData.onchain.recordHash }} style={{ fontSize: 10, wordBreak: "break-all" }}>
                                                     {verifyData.onchain.recordHash}
                                                 </Text>
                                             </Descriptions.Item>
-                                            <Descriptions.Item label="RecordHash (Computed)">
+                                            <Descriptions.Item label="Hash bản ghi (Tính toán)">
                                                 <Text code copyable={{ text: verifyData.computedRecordHash }} style={{ fontSize: 10, wordBreak: "break-all" }}>
                                                     {verifyData.computedRecordHash || "—"}
                                                 </Text>
@@ -603,10 +603,11 @@ export function VerifyPage() {
                                     />
                                 )}
                             </div>
-                        )}
+                        )
+                        }
                     </>
                 )}
-            </Drawer>
-        </div>
+            </Drawer >
+        </div >
     );
 }

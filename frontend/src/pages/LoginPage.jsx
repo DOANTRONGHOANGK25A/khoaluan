@@ -105,7 +105,7 @@ export function LoginPage() {
                     <div className="login-header">
                         <div className="login-logo">🎓</div>
                         <Title level={2} className="login-title">
-                            Diploma System
+                            Hệ thống Văn bằng số
                         </Title>
                         <Text type="secondary">
                             Hệ thống quản lý văn bằng số
@@ -183,7 +183,7 @@ export function LoginPage() {
                 </Card>
 
                 <div className="login-info">
-                    <Text type="secondary">© 2025 Diploma System. All rights reserved.</Text>
+                    <Text type="secondary">© 2025 Hệ thống Văn bằng số. Bảo lưu mọi quyền.</Text>
                 </div>
             </div>
         </div>

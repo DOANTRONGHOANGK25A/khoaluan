@@ -19,6 +19,13 @@ import "../styles/layout.css";
 
 const { Header, Content, Sider } = Layout;
 
+const roleLabels = {
+    ADMIN: "Quản trị viên",
+    STAFF: "Nhân viên",
+    MANAGER: "Quản lý",
+    ISSUER: "Người cấp phát",
+};
+
 const menuItems = [
     {
         key: "/verify",
@@ -155,7 +162,7 @@ export default function MainLayout() {
                 <div className="logo-container">
                     <div className="logo">
                         <div className="logo-icon">🎓</div>
-                        {!collapsed && <span className="logo-text">Diploma System</span>}
+                        {!collapsed && <span className="logo-text">Hệ thống Văn bằng số</span>}
                     </div>
                 </div>
 
@@ -171,7 +178,7 @@ export default function MainLayout() {
                 <div className="sider-footer">
                     {!collapsed && (
                         <div className="version-info">
-                            <small>Version 1.0.0</small>
+                            <small>Phiên bản 1.0.0</small>
                         </div>
                     )}
                 </div>
@@ -198,7 +205,7 @@ export default function MainLayout() {
                             <>
                                 <div className="status-badge" style={{ marginRight: 16 }}>
                                     <span className="status-dot"></span>
-                                    <span className="status-text">{role}</span>
+                                    <span className="status-text">{roleLabels[role] || role}</span>
                                 </div>
                                 <Dropdown
                                     menu={{
@@ -210,7 +217,7 @@ export default function MainLayout() {
                                 >
                                     <Space className="user-dropdown">
                                         <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
-                                        <span className="user-name">{user.username || user.fullName || 'User'}</span>
+                                        <span className="user-name">{user.username || user.fullName || 'Người dùng'}</span>
                                     </Space>
                                 </Dropdown>
                             </>
