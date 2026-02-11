@@ -11,15 +11,15 @@ router.post("/login", async (req, res, next) => {
     try {
         const { username, password } = req.body || {};
         if (!username || !password) {
-            return res.status(400).json({ ok: false, message: "username/password required" });
+            return res.status(400).json({ ok: false, message: "Vui lòng nhập tên đăng nhập và mật khẩu" });
         }
 
         const r = await pool.query("SELECT id, username, password_hash, role FROM users WHERE username=$1", [username]);
         const user = r.rows[0];
-        if (!user) return res.status(401).json({ ok: false, message: "Invalid credentials" });
+        if (!user) return res.status(401).json({ ok: false, message: "Sai tên đăng nhập hoặc mật khẩu" });
 
         const ok = await bcrypt.compare(password, user.password_hash);
-        if (!ok) return res.status(401).json({ ok: false, message: "Invalid credentials" });
+        if (!ok) return res.status(401).json({ ok: false, message: "Sai tên đăng nhập hoặc mật khẩu" });
 
         const token = createSession({ userId: user.id, role: user.role, username: user.username });
 

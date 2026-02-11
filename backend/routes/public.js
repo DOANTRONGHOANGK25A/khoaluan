@@ -13,7 +13,7 @@ router.get("/search", async (req, res, next) => {
         const value = (req.query.value || "").trim();
 
         if (!type || !value) {
-            return res.status(400).json({ ok: false, message: "type and value required" });
+            return res.status(400).json({ ok: false, message: "Vui lòng nhập loại tìm kiếm và giá trị" });
         }
 
         let rows = [];
@@ -36,7 +36,7 @@ router.get("/search", async (req, res, next) => {
             );
             rows = r.rows;
         } else {
-            return res.status(400).json({ ok: false, message: "type must be serialNo, studentId, or studentName" });
+            return res.status(400).json({ ok: false, message: "Loại tìm kiếm phải là serialNo, studentId hoặc studentName" });
         }
 
         // camelCase cho frontend
@@ -61,7 +61,7 @@ router.get("/search", async (req, res, next) => {
 router.get("/verify", async (req, res, next) => {
     try {
         const serialNo = (req.query.serialNo || "").trim();
-        if (!serialNo) return res.status(400).json({ ok: false, message: "serialNo required" });
+        if (!serialNo) return res.status(400).json({ ok: false, message: "Vui lòng nhập số hiệu văn bằng" });
 
         // Tìm diploma
         const r = await pool.query(
@@ -71,7 +71,7 @@ router.get("/verify", async (req, res, next) => {
         if (!d || (d.status !== 'ISSUED' && d.status !== 'REVOKED')) {
             return res.status(404).json({
                 ok: false,
-                message: "Diploma not found or not publicly available"
+                message: "Không tìm thấy văn bằng hoặc văn bằng chưa được công khai"
             });
         }
 
@@ -127,7 +127,7 @@ router.get("/diplomas/:id/files/:kind", async (req, res, next) => {
 
         const allowed = ["PORTRAIT", "DIPLOMA", "TRANSCRIPT"];
         if (!allowed.includes(kind)) {
-            return res.status(400).json({ ok: false, message: "Invalid kind" });
+            return res.status(400).json({ ok: false, message: "Loại tệp không hợp lệ" });
         }
 
         // Check if diploma exists and has public status
@@ -136,7 +136,7 @@ router.get("/diplomas/:id/files/:kind", async (req, res, next) => {
         );
         const diploma = diplomaCheck.rows[0];
         if (!diploma || (diploma.status !== 'ISSUED' && diploma.status !== 'REVOKED')) {
-            return res.status(404).json({ ok: false, message: "Diploma not found or not publicly available" });
+            return res.status(404).json({ ok: false, message: "Không tìm thấy văn bằng hoặc văn bằng chưa được công khai" });
         }
 
         const r = await pool.query(
@@ -145,7 +145,7 @@ router.get("/diplomas/:id/files/:kind", async (req, res, next) => {
             [id, kind]
         );
         const f = r.rows[0];
-        if (!f) return res.status(404).json({ ok: false, message: "File not found" });
+        if (!f) return res.status(404).json({ ok: false, message: "Không tìm thấy tệp" });
 
         res.setHeader("Content-Type", f.mime_type || "application/octet-stream");
         res.setHeader("Content-Disposition", `inline; filename="${f.filename || kind}"`);

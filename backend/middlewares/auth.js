@@ -5,12 +5,12 @@ export function requireAuth(req, res, next) {
     const [type, token] = auth.split(" ");
 
     if (type !== "Bearer" || !token) {
-        return res.status(401).json({ ok: false, message: "Missing token" });
+        return res.status(401).json({ ok: false, message: "Thiếu token xác thực" });
     }
 
     const session = getSession(token);
     if (!session) {
-        return res.status(401).json({ ok: false, message: "Invalid/expired token" });
+        return res.status(401).json({ ok: false, message: "Token không hợp lệ hoặc đã hết hạn" });
     }
 
     req.user = { id: session.userId, role: session.role, username: session.username };

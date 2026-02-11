@@ -29,7 +29,7 @@ app.use("/api/issuer", issuerRouter);
 // error handler cơ bản
 app.use((err, req, res, next) => {
     console.error(err);
-    res.status(500).json({ ok: false, message: "Server error" });
+    res.status(500).json({ ok: false, message: "Lỗi máy chủ" });
 });
 
 export default app;

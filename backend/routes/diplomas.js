@@ -14,7 +14,7 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const ok = ["image/jpeg", "image/png", "application/pdf"].includes(file.mimetype);
-        cb(ok ? null : new Error("Invalid file type"), ok);
+        cb(ok ? null : new Error("Loại tệp không được hỗ trợ"), ok);
     },
 });
 
@@ -58,15 +58,15 @@ router.post(
 
             // validate cơ bản
             if (!serialNo || !studentId || !studentName) {
-                return res.status(400).json({ ok: false, message: "serialNo/studentId/studentName required" });
+                return res.status(400).json({ ok: false, message: "Vui lòng nhập số hiệu, mã sinh viên và tên sinh viên" });
             }
 
             // Validate fields required for future issuance
-            if (!birthDate) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: birthDate" });
-            if (!major) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: major" });
-            if (!ranking) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: ranking" });
-            if (!gpa) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: gpa" });
-            if (!graduationYear) return res.status(400).json({ ok: false, message: "Missing required fields for issuance: graduationYear" });
+            if (!birthDate) return res.status(400).json({ ok: false, message: "Thiếu trường bắt buộc: ngày sinh" });
+            if (!major) return res.status(400).json({ ok: false, message: "Thiếu trường bắt buộc: ngành học" });
+            if (!ranking) return res.status(400).json({ ok: false, message: "Thiếu trường bắt buộc: xếp loại" });
+            if (!gpa) return res.status(400).json({ ok: false, message: "Thiếu trường bắt buộc: điểm GPA" });
+            if (!graduationYear) return res.status(400).json({ ok: false, message: "Thiếu trường bắt buộc: năm tốt nghiệp" });
 
             const files = req.files || {};
             const portrait = files.portrait?.[0];
@@ -74,7 +74,7 @@ router.post(
             const transcript = files.transcript?.[0];
 
             if (!portrait || !diploma || !transcript) {
-                return res.status(400).json({ ok: false, message: "Need 3 files: portrait, diploma, transcript" });
+                return res.status(400).json({ ok: false, message: "Cần tải lên 3 tệp: ảnh chân dung, bằng và bảng điểm" });
             }
 
             await client.query("BEGIN");
@@ -132,7 +132,7 @@ router.post(
 
             // serial_no UNIQUE => conflict
             if (String(e?.message || "").includes("duplicate") || String(e?.code || "") === "23505") {
-                return res.status(409).json({ ok: false, message: "serialNo exists" });
+                return res.status(409).json({ ok: false, message: "Số hiệu văn bằng đã tồn tại" });
             }
             next(e);
         } finally {
@@ -173,13 +173,13 @@ router.put(
             const d0 = r0.rows[0];
             if (!d0) {
                 await client.query("ROLLBACK");
-                return res.status(404).json({ ok: false, message: "Not found" });
+                return res.status(404).json({ ok: false, message: "Không tìm thấy" });
             }
 
             // 1) Allow PENDING or REJECTED
             if (!["PENDING", "REJECTED"].includes(d0.status)) {
                 await client.query("ROLLBACK");
-                return res.status(400).json({ ok: false, message: "Only PENDING or REJECTED can be updated" });
+                return res.status(400).json({ ok: false, message: "Chỉ có thể cập nhật hồ sơ ở trạng thái Chờ duyệt hoặc Bị từ chối" });
             }
 
             // 2) Validate required fields
@@ -188,7 +188,7 @@ router.put(
             // Let's keep it consistent.
             if (!studentId || !studentName || !birthDate || !major || !ranking || !gpa || !graduationYear) {
                 await client.query("ROLLBACK");
-                return res.status(400).json({ ok: false, message: "Missing required fields: studentId, studentName, birthDate, major, ranking, gpa, graduationYear" });
+                return res.status(400).json({ ok: false, message: "Thiếu trường bắt buộc: mã SV, tên SV, ngày sinh, ngành, xếp loại, GPA, năm tốt nghiệp" });
             }
 
             // 3) Update text fields
@@ -310,7 +310,7 @@ router.get("/:id", requireAuth, requireRole("ADMIN", "STAFF", "MANAGER", "ISSUER
             [id]
         );
         const row = r.rows[0];
-        if (!row) return res.status(404).json({ ok: false, message: "Not found" });
+        if (!row) return res.status(404).json({ ok: false, message: "Không tìm thấy" });
         res.json({ ok: true, data: row });
     } catch (e) {
         next(e);
@@ -332,7 +332,7 @@ router.get(
 
             const allowed = ["PORTRAIT", "DIPLOMA", "TRANSCRIPT"];
             if (!allowed.includes(kind)) {
-                return res.status(400).json({ ok: false, message: "Invalid kind" });
+                return res.status(400).json({ ok: false, message: "Loại tệp không hợp lệ" });
             }
 
             const r = await pool.query(
@@ -341,7 +341,7 @@ router.get(
                 [id, kind]
             );
             const f = r.rows[0];
-            if (!f) return res.status(404).json({ ok: false, message: "File not found" });
+            if (!f) return res.status(404).json({ ok: false, message: "Không tìm thấy tệp" });
 
             res.setHeader("Content-Type", f.mime_type || "application/octet-stream");
             // cơ bản: cho tải xuống
@@ -363,8 +363,8 @@ router.post("/:id/approve", requireAuth, requireRole("MANAGER"), async (req, res
 
         const r0 = await client.query("SELECT status FROM diplomas WHERE id=$1 FOR UPDATE", [id]);
         const d0 = r0.rows[0];
-        if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
-        if (d0.status !== "PENDING") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only PENDING can be approved" }); }
+        if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Không tìm thấy" }); }
+        if (d0.status !== "PENDING") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Chỉ có thể duyệt hồ sơ ở trạng thái Chờ duyệt" }); }
 
         const r1 = await client.query(
             `UPDATE diplomas
@@ -400,8 +400,8 @@ router.post("/:id/reject", requireAuth, requireRole("MANAGER"), async (req, res,
             await client.query("BEGIN");
             const r0 = await client.query("SELECT status FROM diplomas WHERE id=$1 FOR UPDATE", [id]);
             const d0 = r0.rows[0];
-            if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
-            if (d0.status !== "PENDING") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only PENDING can be rejected" }); }
+            if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Không tìm thấy" }); }
+            if (d0.status !== "PENDING") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Chỉ có thể từ chối hồ sơ ở trạng thái Chờ duyệt" }); }
 
             const r1 = await client.query(
                 `UPDATE diplomas
@@ -465,15 +465,15 @@ router.get("/:id/recordhash", requireAuth, requireRole("STAFF", "MANAGER", "ISSU
 
 router.post("/:id/issue", requireAuth, requireRole("ISSUER"), walletUpload.single("walletFile"), async (req, res, next) => {
     // Bắt buộc upload wallet
-    if (!req.file) return res.status(400).json({ ok: false, message: "walletFile is required" });
+    if (!req.file) return res.status(400).json({ ok: false, message: "Vui lòng tải lên tệp ví (wallet)" });
 
     let wallet;
     try { wallet = JSON.parse(req.file.buffer.toString("utf8")); }
-    catch { return res.status(400).json({ ok: false, message: "Invalid wallet JSON" }); }
+    catch { return res.status(400).json({ ok: false, message: "Tệp ví không đúng định dạng JSON" }); }
 
     const { mspId, certificate, privateKey } = wallet;
     if (!mspId || !certificate || !privateKey) {
-        return res.status(400).json({ ok: false, message: "Wallet must contain mspId, certificate, privateKey" });
+        return res.status(400).json({ ok: false, message: "Tệp ví phải chứa mspId, certificate và privateKey" });
     }
 
     const client = await pool.connect();
@@ -488,8 +488,8 @@ router.post("/:id/issue", requireAuth, requireRole("ISSUER"), walletUpload.singl
             [id]
         );
         const d = r0.rows[0];
-        if (!d) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
-        if (d.status !== "APPROVED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only APPROVED can be issued" }); }
+        if (!d) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Không tìm thấy" }); }
+        if (d.status !== "APPROVED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Chỉ có thể phát hành văn bằng đã được duyệt" }); }
 
         // Validate required fields for chaincode
         const missing = [];
@@ -503,7 +503,7 @@ router.post("/:id/issue", requireAuth, requireRole("ISSUER"), walletUpload.singl
 
         if (missing.length > 0) {
             await client.query("ROLLBACK");
-            return res.status(400).json({ ok: false, message: `Cannot issue. Missing fields: ${missing.join(", ")}` });
+            return res.status(400).json({ ok: false, message: `Không thể phát hành. Thiếu trường: ${missing.join(", ")}` });
         }
 
         // Tính recordHash
@@ -555,15 +555,15 @@ router.post("/:id/issue", requireAuth, requireRole("ISSUER"), walletUpload.singl
 
 router.post("/:id/revoke", requireAuth, requireRole("ISSUER"), walletUpload.single("walletFile"), async (req, res, next) => {
     // Bắt buộc upload wallet
-    if (!req.file) return res.status(400).json({ ok: false, message: "walletFile is required" });
+    if (!req.file) return res.status(400).json({ ok: false, message: "Vui lòng tải lên tệp ví (wallet)" });
 
     let wallet;
     try { wallet = JSON.parse(req.file.buffer.toString("utf8")); }
-    catch { return res.status(400).json({ ok: false, message: "Invalid wallet JSON" }); }
+    catch { return res.status(400).json({ ok: false, message: "Tệp ví không đúng định dạng JSON" }); }
 
     const { mspId, certificate, privateKey } = wallet;
     if (!mspId || !certificate || !privateKey) {
-        return res.status(400).json({ ok: false, message: "Wallet must contain mspId, certificate, privateKey" });
+        return res.status(400).json({ ok: false, message: "Tệp ví phải chứa mspId, certificate và privateKey" });
     }
 
     const client = await pool.connect();
@@ -576,8 +576,8 @@ router.post("/:id/revoke", requireAuth, requireRole("ISSUER"), walletUpload.sing
             [id]
         );
         const d = r0.rows[0];
-        if (!d) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
-        if (d.status !== "ISSUED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only ISSUED can be revoked" }); }
+        if (!d) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Không tìm thấy" }); }
+        if (d.status !== "ISSUED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Chỉ có thể thu hồi văn bằng đã phát hành" }); }
 
         // đọc on-chain để lấy recordHash log cho chắc
         const before = await chainRead(d.serial_no);
@@ -622,8 +622,8 @@ router.post("/:id/reject-issue", requireAuth, requireRole("ISSUER"), async (req,
         await client.query("BEGIN");
         const r0 = await client.query("SELECT status FROM diplomas WHERE id=$1 FOR UPDATE", [id]);
         const d0 = r0.rows[0];
-        if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
-        if (d0.status !== "APPROVED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only APPROVED can be reject-issued" }); }
+        if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Không tìm thấy" }); }
+        if (d0.status !== "APPROVED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Chỉ có thể từ chối phát hành văn bằng đã được duyệt" }); }
 
         const r1 = await client.query(
             `UPDATE diplomas
@@ -661,8 +661,8 @@ router.post("/:id/resubmit", requireAuth, requireRole("STAFF"), async (req, res,
         await client.query("BEGIN");
         const r0 = await client.query("SELECT status FROM diplomas WHERE id=$1 FOR UPDATE", [id]);
         const d0 = r0.rows[0];
-        if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Not found" }); }
-        if (d0.status !== "REJECTED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Only REJECTED can be resubmitted" }); }
+        if (!d0) { await client.query("ROLLBACK"); return res.status(404).json({ ok: false, message: "Không tìm thấy" }); }
+        if (d0.status !== "REJECTED") { await client.query("ROLLBACK"); return res.status(400).json({ ok: false, message: "Chỉ có thể gửi lại hồ sơ bị từ chối" }); }
 
         const r1 = await client.query(
             `UPDATE diplomas

@@ -12,7 +12,7 @@ router.get("/diplomas/:serialNo", requireAuth, requireRole("STAFF", "MANAGER", "
     } catch (e) {
         // chaincode bạn hay trả NOT_FOUND
         if (String(e?.message || "").includes("NOT_FOUND")) {
-            return res.status(404).json({ ok: false, message: "On-chain NOT_FOUND" });
+            return res.status(404).json({ ok: false, message: "Không tìm thấy dữ liệu trên blockchain" });
         }
         next(e);
     }
