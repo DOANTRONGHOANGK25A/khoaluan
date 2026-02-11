@@ -449,8 +449,14 @@ export function DiplomaDetailPage() {
                             pagination={false}
                             columns={[
                                 { title: "Thời gian", dataIndex: "created_at", render: t => new Date(t).toLocaleString() },
-                                { title: "Hành động", dataIndex: "action", render: t => <Tag color={t === 'APPROVE' ? 'green' : 'red'}>{t}</Tag> },
-                                { title: "Người thực hiện", dataIndex: "actor_id" },
+                                { title: "Hành động", dataIndex: "action", render: t => <Tag color={t === 'APPROVE' ? 'green' : 'red'}>{t === 'APPROVE' ? 'Duyệt' : 'Từ chối'}</Tag> },
+                                {
+                                    title: "Người thực hiện", dataIndex: "actor_username", render: (text, record) => {
+                                        const roleMap = { MANAGER: 'Quản lý', ISSUER: 'Hiệu trưởng', STAFF: 'Nhân viên', ADMIN: 'Quản trị' };
+                                        const roleName = roleMap[record.actor_role] || record.actor_role;
+                                        return text ? `${text} (${roleName})` : record.actor_id;
+                                    }
+                                },
                                 { title: "Ghi chú", dataIndex: "note" }
                             ]}
                         />
@@ -464,10 +470,20 @@ export function DiplomaDetailPage() {
                             pagination={false}
                             columns={[
                                 { title: "Thời gian", dataIndex: "created_at", render: t => new Date(t).toLocaleString() },
-                                { title: "Hành động", dataIndex: "action", render: t => <Tag color="blue">{t}</Tag> },
+                                {
+                                    title: "Hành động", dataIndex: "action", render: t => {
+                                        const map = { ISSUE: 'Phát hành', REVOKE: 'Thu hồi' };
+                                        return <Tag color="blue">{map[t] || t}</Tag>;
+                                    }
+                                },
                                 { title: "Tx ID", dataIndex: "tx_id", ellipsis: true },
                                 { title: "Record Hash", dataIndex: "record_hash", ellipsis: true },
-                                { title: "Trạng thái on-chain", dataIndex: "onchain_status" }
+                                {
+                                    title: "Trạng thái on-chain", dataIndex: "onchain_status", render: t => {
+                                        const map = { ISSUED: 'Đã phát hành', REVOKED: 'Đã thu hồi' };
+                                        return map[t] || t;
+                                    }
+                                }
                             ]}
                         />
                     </Card>

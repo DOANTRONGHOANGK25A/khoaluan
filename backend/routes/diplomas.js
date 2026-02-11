@@ -433,7 +433,11 @@ router.get("/:id/approval-logs", requireAuth, requireRole("STAFF", "MANAGER", "I
     try {
         const id = Number(req.params.id);
         const r = await pool.query(
-            "SELECT id, actor_id, action, note, created_at FROM approval_logs WHERE diploma_id=$1 ORDER BY created_at ASC",
+            `SELECT a.id, a.actor_id, u.username AS actor_username, u.role AS actor_role, a.action, a.note, a.created_at
+             FROM approval_logs a
+             LEFT JOIN users u ON u.id = a.actor_id
+             WHERE a.diploma_id=$1
+             ORDER BY a.created_at ASC`,
             [id]
         );
         res.json({ ok: true, data: r.rows });
